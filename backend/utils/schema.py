@@ -61,8 +61,33 @@ class AnalyzeTaskComplete(BaseModel):
     final_report: Layer2Report
 
 
+class ReportArtifact(BaseModel):
+    format: Literal["markdown"]
+    filename: str
+    content: str
+
+
+class AnalyzeTaskReportNeedsClarification(BaseModel):
+    status: Literal["needs_clarification"]
+    clarifying_questions: list[str]
+    task_context_partial: dict[str, Any]
+    layer1_report: AuditReport
+
+
+class AnalyzeTaskReportComplete(BaseModel):
+    status: Literal["complete"]
+    final_report: Layer2Report
+    report_artifact: ReportArtifact
+
+
 AnalyzeTaskResponse = Annotated[
     Union[AnalyzeTaskNeedsClarification, AnalyzeTaskComplete],
+    Field(discriminator="status"),
+]
+
+
+AnalyzeTaskReportResponse = Annotated[
+    Union[AnalyzeTaskReportNeedsClarification, AnalyzeTaskReportComplete],
     Field(discriminator="status"),
 ]
 
@@ -81,4 +106,8 @@ __all__ = [
     "AnalyzeTaskNeedsClarification",
     "AnalyzeTaskComplete",
     "AnalyzeTaskResponse",
+    "ReportArtifact",
+    "AnalyzeTaskReportNeedsClarification",
+    "AnalyzeTaskReportComplete",
+    "AnalyzeTaskReportResponse",
 ]

@@ -1,75 +1,72 @@
 # AuditLens
 
-AuditLens is an agentic audit framework for machine learning datasets that combines deterministic statistics with LLM-based interpretation.
+Task-aware bias auditing for machine learning datasets.
 
-## Vision
+AuditLens exists to help teams detect dataset bias early, prioritize real risk, and prepare actionable mitigation steps before model training.
 
-Most bias tools stop at "a skew exists." AuditLens goes further: it explains whether that skew is harmful for a specific ML task, how severe the risk is, and what to do next.
+## Key Features
 
-The goal is to help teams catch data bias before model training and ship safer systems.
+- Deterministic statistical auditing of tabular datasets
+- Severity-based issue ranking (`high`, `medium`, `low`)
+- Multiple bias signals in one run:
+  - class imbalance
+  - differential missingness across groups
+  - sensitive attribute correlation with target
+  - subgroup label distribution and demographic parity gap
+- Stable, schema-validated output for downstream processing
+- Test coverage for correctness, determinism, and performance
+- Offline-safe smoke test fixture for Adult Income dataset
 
-## The Core Idea
+## Product Direction
 
-AuditLens takes two inputs:
-- A dataset (CSV/tabular)
-- A task description (for example: "predict loan default risk")
+AuditLens is designed as a 3-layer system:
 
-Then it runs a 3-layer pipeline:
-- Layer 1: Deterministic statistical audit
-- Layer 2: Task-aware LLM interpretation
-- Layer 3: Structured report generation
+- Layer 1: Deterministic statistical audit (implemented)
+- Layer 2: Task-aware LLM interpretation (planned)
+- Layer 3: Report generation and delivery (planned)
 
-## Architecture
+Current repository status: Week 1 foundation is complete.
 
-### Layer 1: Statistical Audit (Deterministic)
+## Tech Stack
 
-Computes measurable dataset risk signals such as:
-- Class imbalance
-- Differential missingness by group
-- Sensitive attribute correlation with target
-- Subgroup label distribution and demographic parity gap
+Current implementation:
+- Python
+- FastAPI
+- Pandas
+- NumPy
+- SciPy
+- scikit-learn
+- Pydantic
+- pytest
 
-Output is strict JSON with metrics, issues, severity, and justification.
+Planned additions:
+- LangGraph + LLM provider
+- Reporting tools (Markdown/PDF)
+- Frontend and deployment layer
 
-### Layer 2: Agent Interpretation (Task-Aware)
+## Project Structure
 
-Consumes Layer 1 output plus task context and reasons about:
-- Which issues are truly harmful for the stated ML objective
-- Likely downstream model behavior and fairness risk
-- Concrete mitigation options and implementation guidance
+```text
+backend/
+  main.py                # Application entrypoint
+  routers/               # Request handling and input validation
+  layer1/                # Statistical analyzers + audit orchestration
+  utils/                 # Shared schemas and configuration
+tests/
+  fixtures/              # Local test datasets
+  test_api.py            # API behavior tests
+  test_layer1.py         # Core analyzer tests
+  test_adult_income_smoke.py
+docs/
+  main-idea.md
+  bias_audit_mvp_plan.md
+```
 
-### Layer 3: Reporting
+## Setup and Installation
 
-Generates a decision-ready report with:
-- Executive summary
-- Ranked risks
-- Supporting visuals
-- Mitigation recommendations
-- Reproducibility details
-- Human-review disclaimer
-
-## Why This Matters
-
-- Bias is contextual: not every skew is equally harmful for every task.
-- Teams need ranked, actionable findings, not raw metrics alone.
-- Deterministic-first design improves auditability and trust.
-
-## Development Status
-
-Implemented now:
-- Week 1 foundation (Layer 1 backend and API)
-- FastAPI endpoints: `/health`, `/upload`, `/analyze`
-- Deterministic issue detection and severity scoring
-- Automated tests with offline Adult Income smoke fixture
-
-Planned next:
-- Week 2: Agentic interpretation layer
-- Week 3: Report generation + deployment
-- Week 4: Evaluation suite and polish
-
-## Quick Start
-
-### 1) Setup
+1. Clone the repository.
+2. Create a virtual environment.
+3. Install dependencies.
 
 ```bash
 python3 -m venv .venv
@@ -77,65 +74,60 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 2) Run API
+## Run the Project
+
+Start the development server:
 
 ```bash
 uvicorn backend.main:app --reload
 ```
 
-Open:
-- `http://127.0.0.1:8000/docs`
+The service will run locally and can be exercised from your preferred API client.
 
-## API (Current)
+## Environment Variables
 
-- `GET /health`
-- `POST /upload`
-- `POST /analyze`
+No environment variables are required for the current implementation.
 
-Example:
+Notes:
+- There is currently no `.env` file or environment loader in use.
+- When Layer 2 is added, API keys and model settings should be moved to environment variables.
 
-```bash
-curl -X POST "http://127.0.0.1:8000/analyze" \
-  -F "file=@sample.csv" \
-  -F "target_column=income" \
-  -F "sensitive_columns=sex,race"
+## Usage Example
+
+Use the core audit engine directly in Python:
+
+```python
+import pandas as pd
+from backend.layer1.audit import run_layer1_audit
+
+df = pd.read_csv("sample.csv")
+report = run_layer1_audit(
+    df=df,
+    target_col="income",
+    sensitive_cols=["sex", "race"],
+)
+
+print(report["summary"])
 ```
 
-## Testing
+Expected result:
+- a dataset summary
+- a list of ranked bias issues
+- a severity count summary
+
+## Demo / Screenshots
+
+Placeholder:
+- Add a short GIF or screenshot once UI/reporting layers are implemented.
+
+## Quality Checks
+
+Run tests:
 
 ```bash
 python -m pytest
 ```
 
-Note:
-- Adult Income smoke test is offline-safe via `tests/fixtures/adult.data`.
-
-## Tech Stack
-
-Current:
-- Python, FastAPI, Pandas, SciPy, scikit-learn
-
-Planned extension:
-- LangGraph + LLM provider (OpenAI/Groq)
-- Report generation (Markdown/PDF)
-- Frontend and hosted deployment
-
-## Repository Layout
-
-```text
-backend/
-  layer1/
-  routers/
-  utils/
-tests/
-docs/
-```
-
-## References
-
-- Project concept: `docs/main-idea.md`
-- Full MVP plan: `docs/bias_audit_mvp_plan.md`
-
 ## License
 
-No license file added yet.
+No license file is currently included.

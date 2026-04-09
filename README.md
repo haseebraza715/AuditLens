@@ -64,4 +64,14 @@ Layer 2 task-aware endpoint:
 - optional `clarification_answers` JSON can be sent on follow-up requests
 - response status is either `needs_clarification` or `complete`
 
+Example clarification follow-up:
+- first call returns `needs_clarification` with targeted questions
+- second call includes JSON answers in `clarification_answers` to receive `complete`
+
+## Limitations
+
+- Layer 2 interpretation is LLM-assisted and can be wrong.
+- Recommendations should be reviewed by a qualified practitioner before deployment decisions.
+- Human review is strongly recommended for high-stakes use cases.
+
 For system design details, see [ARCHITECTURE.md](./ARCHITECTURE.md).

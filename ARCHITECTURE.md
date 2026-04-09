@@ -6,8 +6,8 @@ AuditLens evaluates tabular datasets for potential bias in a deterministic pipel
 
 Layer status:
 - Layer 1: statistical audit (implemented)
-- Layer 2: task-aware interpretation (in progress)
-- Layer 3: report generation (planned)
+- Layer 2: task-aware interpretation (implemented)
+- Layer 3: report generation (in progress)
 
 ## Key Components
 
@@ -24,6 +24,7 @@ Layer status:
 - [`backend/layer2/agent.py`](./backend/layer2/agent.py): Layer 2 orchestration entrypoint.
 - [`backend/layer2/nodes/`](./backend/layer2/nodes/): parse/analyze/clarify/interpret/recommend/report pipeline nodes.
 - [`backend/layer2/llm/`](./backend/layer2/llm/): provider abstraction for OpenAI/Groq-compatible clients.
+- [`backend/layer3/report_generator.py`](./backend/layer3/report_generator.py): markdown report assembly for delivery.
 
 ## Data Flow
 
@@ -31,8 +32,9 @@ Layer status:
 2. Router validates and normalizes request input.
 3. Layer 1 orchestrator executes analyzers.
 4. Findings are scored and sorted by severity.
-5. Layer 2 (optional via `/analyze-task`) runs parse -> analyze -> clarify/interpret -> recommend -> report.
-6. API returns either clarification questions or a structured task-aware report.
+5. Layer 2 (via `/analyze-task` or `/analyze-task-report`) runs parse -> analyze -> clarify/interpret -> recommend -> report.
+6. API returns clarification questions or a structured task-aware report.
+7. Layer 3 (via `/analyze-task-report`) generates shareable Markdown from final Layer 2 output.
 
 ## Diagram
 
@@ -56,4 +58,6 @@ graph TD
     L -->|No| N["Layer 2 interpret"]
     N --> O["Layer 2 recommend"]
     O --> P["Layer 2 report"]
+    P --> Q["Layer 3 markdown generator"]
+    Q --> R["Report artifact response"]
 ```

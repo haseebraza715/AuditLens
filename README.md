@@ -64,6 +64,11 @@ Layer 2 task-aware endpoint:
 - optional `clarification_answers` JSON can be sent on follow-up requests
 - response status is either `needs_clarification` or `complete`
 
+Layer 3 report endpoint:
+- use `POST /analyze-task-report` with the same inputs as `/analyze-task`
+- on completion, response includes `report_artifact` with Markdown report content (`auditlens_report.md`)
+- if task context is ambiguous, response returns `needs_clarification` before report generation
+
 Example clarification follow-up:
 - first call returns `needs_clarification` with targeted questions
 - second call includes JSON answers in `clarification_answers` to receive `complete`

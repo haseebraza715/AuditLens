@@ -11,6 +11,7 @@ from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from pandas.errors import EmptyDataError, ParserError
 
 from backend.layer2.agent import run_layer2_pipeline
+from backend.layer2.errors import Layer2InvalidResponseError, Layer2ProviderError
 from backend.utils.config import Layer2ConfigurationError, get_layer2_settings
 from backend.layer1.audit import run_layer1_audit
 from backend.utils.schema import AnalyzeTaskResponse, AuditReport, UploadPreview
@@ -145,5 +146,9 @@ def analyze_task(
         )
     except Layer2ConfigurationError as exc:
         raise HTTPException(status_code=503, detail=str(exc))
+    except Layer2InvalidResponseError as exc:
+        raise HTTPException(status_code=502, detail=str(exc))
+    except Layer2ProviderError as exc:
+        raise HTTPException(status_code=502, detail=str(exc))
 
     return result  # type: ignore[return-value]

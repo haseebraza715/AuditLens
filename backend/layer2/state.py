@@ -18,3 +18,6 @@ class AuditState(TypedDict, total=False):
     needs_clarification: bool
     clarifying_questions: list[str]
     final_report: dict[str, Any]
+
+    llm_client: Any
+    max_retries: int

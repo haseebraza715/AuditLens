@@ -2,9 +2,53 @@ from __future__ import annotations
 
 from typing import Any
 
+from langgraph.graph import END, StateGraph
+
+from backend.layer2.errors import Layer2ConfigurationError, Layer2InvalidResponseError, Layer2ProviderError
+from backend.layer2.llm.base import BaseLLMClient
 from backend.layer2.llm.factory import create_provider_client
+from backend.layer2.nodes.analyze import analyze_node
+from backend.layer2.nodes.clarify import clarify_node
+from backend.layer2.nodes.interpret import interpret_node
+from backend.layer2.nodes.parse import parse_node
+from backend.layer2.nodes.recommend import recommend_node
+from backend.layer2.nodes.report import report_node
 from backend.layer2.state import AuditState
-from backend.utils.config import Layer2ConfigurationError
+from backend.utils.config import Layer2ConfigurationError as ConfigError
+from backend.utils.config import get_layer2_settings
+
+
+def _after_analyze(state: AuditState) -> str:
+    if state.get("needs_clarification"):
+        return "clarify"
+    return "interpret"
+
+
+def build_layer2_graph():
+    workflow = StateGraph(AuditState)
+    workflow.add_node("parse", parse_node)
+    workflow.add_node("analyze", analyze_node)
+    workflow.add_node("clarify", clarify_node)
+    workflow.add_node("interpret", interpret_node)
+    workflow.add_node("recommend", recommend_node)
+    workflow.add_node("report", report_node)
+
+    workflow.set_entry_point("parse")
+    workflow.add_edge("parse", "analyze")
+    workflow.add_conditional_edges(
+        "analyze",
+        _after_analyze,
+        {
+            "clarify": "clarify",
+            "interpret": "interpret",
+        },
+    )
+    workflow.add_edge("clarify", "report")
+    workflow.add_edge("interpret", "recommend")
+    workflow.add_edge("recommend", "report")
+    workflow.add_edge("report", END)
+
+    return workflow.compile()
 
 
 def run_layer2_pipeline(
@@ -13,90 +57,44 @@ def run_layer2_pipeline(
     task_description: str,
     clarification_answers: dict[str, Any] | None = None,
     request_id: str | None = None,
+    llm_client: BaseLLMClient | None = None,
 ) -> dict[str, Any]:
-    """
-    Phase 1 placeholder orchestrator.
-
-    A provider client is created to validate runtime config now,
-    while node logic is implemented in later phases.
-    """
     try:
-        _ = create_provider_client()
-    except Exception as exc:
-        if isinstance(exc, Layer2ConfigurationError):
-            raise
+        settings = get_layer2_settings()
+    except ConfigError as exc:
         raise Layer2ConfigurationError(str(exc)) from exc
 
-    _state: AuditState = {
+    if llm_client is None:
+        llm_client = create_provider_client()
+
+    initial_state: AuditState = {
         "request_id": request_id or "",
         "raw_json": layer1_report,
         "task_description": task_description,
         "clarification_answers": clarification_answers or {},
+        "llm_client": llm_client,
+        "max_retries": settings.max_retries,
     }
 
-    if not clarification_answers:
+    graph = build_layer2_graph()
+    try:
+        output = graph.invoke(initial_state)
+    except Layer2ProviderError:
+        raise
+    except Layer2InvalidResponseError:
+        raise
+    except Exception as exc:
+        raise Layer2ProviderError("Layer 2 pipeline execution failed") from exc
+
+    if output.get("needs_clarification"):
         return {
             "status": "needs_clarification",
-            "clarifying_questions": [
-                "What prediction target and positive outcome should the model optimize for?",
-                "Who is most affected by false positives vs false negatives in this task?",
-            ],
-            "task_context_partial": {
-                "task_type": "unknown",
-                "stakes_level": "unknown",
-                "confidence": 0.0,
-                "assumptions": [],
-            },
+            "clarifying_questions": list(output.get("clarifying_questions", []))[:2],
+            "task_context_partial": dict(output.get("task_context_partial", {})),
             "layer1_report": layer1_report,
         }
 
-    issues: list[dict[str, Any]] = []
-    for issue in layer1_report.get("issues", []):
-        issues.append(
-            {
-                "statistical_issue": issue,
-                "interpretation": {
-                    "issue_id": issue.get("issue_id", "unknown_issue"),
-                    "why_harmful": "Placeholder interpretation. Phase 3 will provide task-aware reasoning.",
-                    "at_risk_groups": [],
-                    "likely_model_impact": "Placeholder model impact summary.",
-                    "severity_delta": "equal",
-                    "severity_rationale": "Placeholder severity rationale.",
-                },
-                "mitigations": [
-                    {
-                        "title": "Collect more representative samples",
-                        "category": "data_collection",
-                        "when_to_use": "When subgroup representation is sparse.",
-                        "tradeoffs": "Requires additional collection time and cost.",
-                        "difficulty": "medium",
-                        "expected_impact": "Improves subgroup coverage and fairness metrics.",
-                        "code_snippet": "# placeholder: no direct code for data collection",
-                    }
-                ],
-            }
-        )
-
     return {
         "status": "complete",
-        "final_report": {
-            "task_description": task_description,
-            "task_context": {
-                "task_type": "unknown",
-                "positive_class_meaning": "",
-                "affected_population": "",
-                "false_positive_consequence": "",
-                "false_negative_consequence": "",
-                "decision_impact": "",
-                "stakes_level": "unknown",
-                "confidence": 0.0,
-                "assumptions": ["Placeholder output for phase 1 scaffolding."],
-            },
-            "issues": issues,
-            "summary": "Placeholder Layer 2 summary. Task-aware reasoning is added in later phases.",
-            "disclaimer": (
-                "This report was generated with LLM assistance. "
-                "Human review is recommended before making decisions."
-            ),
-        },
+        "final_report": output.get("final_report", {}),
     }

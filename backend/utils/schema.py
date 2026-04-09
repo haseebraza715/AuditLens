@@ -1,8 +1,16 @@
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Annotated, Any, Literal, Union
 
 from pydantic import BaseModel, Field
+
+from backend.layer2.schema import (
+    IssueInterpretation,
+    Layer2IssueReport,
+    Layer2Report,
+    MitigationRecommendation,
+    TaskContext,
+)
 
 
 class DatasetInfo(BaseModel):
@@ -39,3 +47,38 @@ class UploadPreview(BaseModel):
     rows: int = Field(..., ge=0)
     columns: int = Field(..., ge=0)
     column_names: list[str]
+
+
+class AnalyzeTaskNeedsClarification(BaseModel):
+    status: Literal["needs_clarification"]
+    clarifying_questions: list[str]
+    task_context_partial: dict[str, Any]
+    layer1_report: AuditReport
+
+
+class AnalyzeTaskComplete(BaseModel):
+    status: Literal["complete"]
+    final_report: Layer2Report
+
+
+AnalyzeTaskResponse = Annotated[
+    Union[AnalyzeTaskNeedsClarification, AnalyzeTaskComplete],
+    Field(discriminator="status"),
+]
+
+
+__all__ = [
+    "DatasetInfo",
+    "AuditIssue",
+    "AuditSummary",
+    "AuditReport",
+    "UploadPreview",
+    "TaskContext",
+    "IssueInterpretation",
+    "MitigationRecommendation",
+    "Layer2IssueReport",
+    "Layer2Report",
+    "AnalyzeTaskNeedsClarification",
+    "AnalyzeTaskComplete",
+    "AnalyzeTaskResponse",
+]

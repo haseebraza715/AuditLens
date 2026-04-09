@@ -8,3 +8,7 @@ python-multipart
 pydantic
 pytest
 httpx
+langgraph
+langchain
+langchain-openai
+openai

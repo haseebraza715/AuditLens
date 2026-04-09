@@ -1,72 +1,21 @@
 # AuditLens
 
-Task-aware bias auditing for machine learning datasets.
+## Overview
 
-AuditLens exists to help teams detect dataset bias early, prioritize real risk, and prepare actionable mitigation steps before model training.
+AuditLens is a FastAPI service for deterministic bias auditing on tabular datasets before model training.
 
-## Key Features
+Current implementation includes Layer 1 (statistical audit):
+- class distribution checks
+- missingness analysis by sensitive group
+- sensitive attribute correlation checks
+- subgroup outcome parity checks
+- severity scoring and ranked issue output
 
-- Deterministic statistical auditing of tabular datasets
-- Severity-based issue ranking (`high`, `medium`, `low`)
-- Multiple bias signals in one run:
-  - class imbalance
-  - differential missingness across groups
-  - sensitive attribute correlation with target
-  - subgroup label distribution and demographic parity gap
-- Stable, schema-validated output for downstream processing
-- Test coverage for correctness, determinism, and performance
-- Offline-safe smoke test fixture for Adult Income dataset
+Planned layers:
+- Layer 2: task-aware interpretation
+- Layer 3: report generation and delivery
 
-## Product Direction
-
-AuditLens is designed as a 3-layer system:
-
-- Layer 1: Deterministic statistical audit (implemented)
-- Layer 2: Task-aware LLM interpretation (planned)
-- Layer 3: Report generation and delivery (planned)
-
-Current repository status: Week 1 foundation is complete.
-
-## Tech Stack
-
-Current implementation:
-- Python
-- FastAPI
-- Pandas
-- NumPy
-- SciPy
-- scikit-learn
-- Pydantic
-- pytest
-
-Planned additions:
-- LangGraph + LLM provider
-- Reporting tools (Markdown/PDF)
-- Frontend and deployment layer
-
-## Project Structure
-
-```text
-backend/
-  main.py                # Application entrypoint
-  routers/               # Request handling and input validation
-  layer1/                # Statistical analyzers + audit orchestration
-  utils/                 # Shared schemas and configuration
-tests/
-  fixtures/              # Local test datasets
-  test_api.py            # API behavior tests
-  test_layer1.py         # Core analyzer tests
-  test_adult_income_smoke.py
-docs/
-  main-idea.md
-  bias_audit_mvp_plan.md
-```
-
-## Setup and Installation
-
-1. Clone the repository.
-2. Create a virtual environment.
-3. Install dependencies.
+## Setup
 
 ```bash
 python3 -m venv .venv
@@ -74,27 +23,21 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-## Run the Project
-
-Start the development server:
+Run the API locally:
 
 ```bash
 uvicorn backend.main:app --reload
 ```
 
-The service will run locally and can be exercised from your preferred API client.
+Run tests:
 
-## Environment Variables
+```bash
+python -m pytest
+```
 
-No environment variables are required for the current implementation.
+## Usage
 
-Notes:
-- There is currently no `.env` file or environment loader in use.
-- When Layer 2 is added, API keys and model settings should be moved to environment variables.
-
-## Usage Example
-
-Use the core audit engine directly in Python:
+Use the Python audit entrypoint directly:
 
 ```python
 import pandas as pd
@@ -108,26 +51,12 @@ report = run_layer1_audit(
 )
 
 print(report["summary"])
+print(report["issues"])
 ```
 
-Expected result:
-- a dataset summary
-- a list of ranked bias issues
-- a severity count summary
+Use the API:
+- start the server with `uvicorn backend.main:app --reload`
+- open `http://127.0.0.1:8000/docs`
+- call the audit endpoint with dataset, target column, and sensitive columns
 
-## Demo / Screenshots
-
-Placeholder:
-- Add a short GIF or screenshot once UI/reporting layers are implemented.
-
-## Quality Checks
-
-Run tests:
-
-```bash
-python -m pytest
-```
-
-## License
-
-No license file is currently included.
+For system design details, see `ARCHITECTURE.md`.

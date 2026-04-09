@@ -2,58 +2,47 @@
 
 ## System Overview
 
-AuditLens evaluates tabular datasets for potential bias in a structured, deterministic way.
+AuditLens evaluates tabular datasets for potential bias in a deterministic pipeline.
 
-Current implementation focuses on Layer 1 (statistical audit):
-- Input ingestion and validation
-- Analyzer execution
-- Severity scoring and issue ranking
-- Structured report output
-
-The long-term architecture is 3-layer:
-- Layer 1: Statistical audit (implemented)
-- Layer 2: Task-aware interpretation (planned)
-- Layer 3: Report generation (planned)
+Layer status:
+- Layer 1: statistical audit (implemented)
+- Layer 2: task-aware interpretation (planned)
+- Layer 3: report generation (planned)
 
 ## Key Components
 
-- `backend/main.py`
-  - Application bootstrap and router registration.
-- `backend/routers/audit.py`
-  - Accepts dataset input and user parameters.
-  - Performs validation and triggers audit execution.
-- `backend/layer1/audit.py`
-  - Orchestrates all analyzers and returns a single report payload.
-- `backend/layer1/*.py`
-  - Individual analyzers for class balance, missingness, correlation, and subgroup parity.
-- `backend/layer1/severity_scorer.py`
-  - Applies threshold-based severity rules and summary counts.
-- `backend/utils/schema.py`
-  - Defines structured output schema.
-- `backend/utils/config.py`
-  - Centralized thresholds and issue sort order.
+- `backend/main.py`: FastAPI app bootstrap and router wiring.
+- `backend/routers/audit.py`: request validation and audit endpoint.
+- `backend/layer1/audit.py`: orchestrates analyzers into one report.
+- `backend/layer1/class_distribution.py`: target class imbalance checks.
+- `backend/layer1/missing_values.py`: missingness checks across groups.
+- `backend/layer1/correlations.py`: sensitive-to-target correlation checks.
+- `backend/layer1/subgroup_analysis.py`: subgroup outcome and parity checks.
+- `backend/layer1/severity_scorer.py`: severity assignment and issue ranking.
+- `backend/utils/schema.py`: report schema.
+- `backend/utils/config.py`: thresholds and sorting configuration.
 
 ## Data Flow
 
-1. Dataset is uploaded with target and sensitive column context.
-2. Input is validated and normalized.
-3. Layer 1 analyzers run independently.
+1. Client submits dataset with target and sensitive column config.
+2. Router validates and normalizes request input.
+3. Layer 1 orchestrator executes analyzers.
 4. Findings are scored and sorted by severity.
-5. Unified audit report is returned in structured form.
+5. API returns a structured audit report.
 
 ## Diagram
 
 ```mermaid
 graph TD
-    A["Dataset + Audit Parameters"] --> B["Input Validation (Router)"]
-    B --> C["Layer 1 Audit Orchestrator"]
-    C --> D["Class Distribution Analyzer"]
-    C --> E["Missingness Analyzer"]
-    C --> F["Correlation Analyzer"]
-    C --> G["Subgroup Parity Analyzer"]
-    D --> H["Severity Scorer + Sorter"]
+    A["Dataset + audit parameters"] --> B["Request validation"]
+    B --> C["Layer 1 orchestrator"]
+    C --> D["Class distribution analyzer"]
+    C --> E["Missingness analyzer"]
+    C --> F["Correlation analyzer"]
+    C --> G["Subgroup analysis"]
+    D --> H["Severity scorer"]
     E --> H
     F --> H
     G --> H
-    H --> I["Structured Audit Report"]
+    H --> I["Structured audit report"]
 ```

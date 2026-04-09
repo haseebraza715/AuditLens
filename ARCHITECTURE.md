@@ -6,7 +6,7 @@ AuditLens evaluates tabular datasets for potential bias in a deterministic pipel
 
 Layer status:
 - Layer 1: statistical audit (implemented)
-- Layer 2: task-aware interpretation (planned)
+- Layer 2: task-aware interpretation (in progress)
 - Layer 3: report generation (planned)
 
 ## Key Components
@@ -21,6 +21,9 @@ Layer status:
 - [`backend/layer1/severity_scorer.py`](./backend/layer1/severity_scorer.py): severity assignment and issue ranking.
 - [`backend/utils/schema.py`](./backend/utils/schema.py): report schema.
 - [`backend/utils/config.py`](./backend/utils/config.py): thresholds and sorting configuration.
+- [`backend/layer2/agent.py`](./backend/layer2/agent.py): Layer 2 orchestration entrypoint.
+- [`backend/layer2/nodes/`](./backend/layer2/nodes/): parse/analyze/clarify/interpret/recommend/report pipeline nodes.
+- [`backend/layer2/llm/`](./backend/layer2/llm/): provider abstraction for OpenAI/Groq-compatible clients.
 
 ## Data Flow
 
@@ -28,7 +31,8 @@ Layer status:
 2. Router validates and normalizes request input.
 3. Layer 1 orchestrator executes analyzers.
 4. Findings are scored and sorted by severity.
-5. API returns a structured audit report.
+5. Layer 2 (optional via `/analyze-task`) runs parse -> analyze -> clarify/interpret -> recommend -> report.
+6. API returns either clarification questions or a structured task-aware report.
 
 ## Diagram
 
@@ -44,5 +48,12 @@ graph TD
     E --> H
     F --> H
     G --> H
-    H --> I["Structured audit report"]
+    H --> I["Layer 1 report"]
+    I --> J["Layer 2 parse"]
+    J --> K["Layer 2 analyze"]
+    K --> L{"Needs clarification?"}
+    L -->|Yes| M["Clarifying questions response"]
+    L -->|No| N["Layer 2 interpret"]
+    N --> O["Layer 2 recommend"]
+    O --> P["Layer 2 report"]
 ```

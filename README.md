@@ -59,4 +59,9 @@ Use the API:
 - open `http://127.0.0.1:8000/docs`
 - call the audit endpoint with dataset, target column, and sensitive columns
 
+Layer 2 task-aware endpoint:
+- use `POST /analyze-task` with the same CSV inputs plus required `task_description`
+- optional `clarification_answers` JSON can be sent on follow-up requests
+- response status is either `needs_clarification` or `complete`
+
 For system design details, see [ARCHITECTURE.md](./ARCHITECTURE.md).

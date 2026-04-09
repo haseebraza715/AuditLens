@@ -1,105 +1,98 @@
 # AuditLens
 
-AuditLens is a bias-audit backend for tabular ML datasets.
+AuditLens is an agentic audit framework for machine learning datasets that combines deterministic statistics with LLM-based interpretation.
 
-It analyzes a CSV dataset with respect to a target column and sensitive attributes, then returns a structured JSON report with detected issues and severity levels.
+## Vision
 
-## Current Status
+Most bias tools stop at "a skew exists." AuditLens goes further: it explains whether that skew is harmful for a specific ML task, how severe the risk is, and what to do next.
 
-Week 1 (Statistical Layer) is complete.
+The goal is to help teams catch data bias before model training and ship safer systems.
 
-Implemented:
-- FastAPI backend with upload + analyze endpoints
-- Deterministic Layer 1 bias checks
-- Severity scoring and issue ranking
-- Test suite with offline Adult Income smoke fixture
+## The Core Idea
 
-Planned next (not implemented yet):
-- Week 2: Task-aware LLM/agent interpretation layer
-- Week 3: Report generation + deployment
-- Week 4: Evaluation suite and full documentation polish
+AuditLens takes two inputs:
+- A dataset (CSV/tabular)
+- A task description (for example: "predict loan default risk")
 
-## What AuditLens Detects (Layer 1)
+Then it runs a 3-layer pipeline:
+- Layer 1: Deterministic statistical audit
+- Layer 2: Task-aware LLM interpretation
+- Layer 3: Structured report generation
 
-- Class imbalance in target label
-- Differential missingness across sensitive groups
+## Architecture
+
+### Layer 1: Statistical Audit (Deterministic)
+
+Computes measurable dataset risk signals such as:
+- Class imbalance
+- Differential missingness by group
 - Sensitive attribute correlation with target
-- Demographic parity gap by subgroup
+- Subgroup label distribution and demographic parity gap
 
-Every issue includes:
-- `issue_id`
-- `type`
-- `description`
-- `severity` (`high` / `medium` / `low`)
-- metric details
-- threshold-based justification
+Output is strict JSON with metrics, issues, severity, and justification.
 
-## API Endpoints
+### Layer 2: Agent Interpretation (Task-Aware)
 
-- `GET /health`
-- `POST /upload`
-- `POST /analyze`
+Consumes Layer 1 output plus task context and reasons about:
+- Which issues are truly harmful for the stated ML objective
+- Likely downstream model behavior and fairness risk
+- Concrete mitigation options and implementation guidance
 
-### `POST /upload`
+### Layer 3: Reporting
 
-Accepts a CSV file and returns:
-- row count
-- column count
-- list of columns
+Generates a decision-ready report with:
+- Executive summary
+- Ranked risks
+- Supporting visuals
+- Mitigation recommendations
+- Reproducibility details
+- Human-review disclaimer
 
-### `POST /analyze`
+## Why This Matters
 
-Inputs:
-- `file` (CSV)
-- `target_column` (form field)
-- `sensitive_columns` (form field, comma-separated or repeated entries)
+- Bias is contextual: not every skew is equally harmful for every task.
+- Teams need ranked, actionable findings, not raw metrics alone.
+- Deterministic-first design improves auditability and trust.
 
-Output:
-- `dataset_info`
-- `issues` (sorted by severity, then id)
-- `summary` counts by severity
+## Development Status
+
+Implemented now:
+- Week 1 foundation (Layer 1 backend and API)
+- FastAPI endpoints: `/health`, `/upload`, `/analyze`
+- Deterministic issue detection and severity scoring
+- Automated tests with offline Adult Income smoke fixture
+
+Planned next:
+- Week 2: Agentic interpretation layer
+- Week 3: Report generation + deployment
+- Week 4: Evaluation suite and polish
 
 ## Quick Start
 
-### 1. Create and activate virtualenv
+### 1) Setup
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-```
-
-### 2. Install dependencies
-
-```bash
 pip install -r requirements.txt
 ```
 
-### 3. Run API
+### 2) Run API
 
 ```bash
 uvicorn backend.main:app --reload
 ```
 
-Server starts at:
-- `http://127.0.0.1:8000`
-- Docs: `http://127.0.0.1:8000/docs`
+Open:
+- `http://127.0.0.1:8000/docs`
 
-## Example Usage
+## API (Current)
 
-### Health check
+- `GET /health`
+- `POST /upload`
+- `POST /analyze`
 
-```bash
-curl http://127.0.0.1:8000/health
-```
-
-### Upload preview
-
-```bash
-curl -X POST "http://127.0.0.1:8000/upload" \
-  -F "file=@sample.csv"
-```
-
-### Analyze
+Example:
 
 ```bash
 curl -X POST "http://127.0.0.1:8000/analyze" \
@@ -108,48 +101,41 @@ curl -X POST "http://127.0.0.1:8000/analyze" \
   -F "sensitive_columns=sex,race"
 ```
 
-## Run Tests
+## Testing
 
 ```bash
 python -m pytest
 ```
 
-Notes:
-- The Adult Income smoke test uses a local fixture at `tests/fixtures/adult.data` (offline-safe).
-- Current suite should pass fully (`16 passed`).
+Note:
+- Adult Income smoke test is offline-safe via `tests/fixtures/adult.data`.
 
-## Project Structure
+## Tech Stack
+
+Current:
+- Python, FastAPI, Pandas, SciPy, scikit-learn
+
+Planned extension:
+- LangGraph + LLM provider (OpenAI/Groq)
+- Report generation (Markdown/PDF)
+- Frontend and hosted deployment
+
+## Repository Layout
 
 ```text
 backend/
-  main.py
-  routers/audit.py
   layer1/
-    audit.py
-    class_distribution.py
-    missing_values.py
-    correlations.py
-    subgroup_analysis.py
-    severity_scorer.py
+  routers/
   utils/
-    schema.py
-    config.py
 tests/
-  test_api.py
-  test_layer1.py
-  test_adult_income_smoke.py
-  fixtures/adult.data
 docs/
-  main-idea.md
-  bias_audit_mvp_plan.md
 ```
 
-## Limitations (Current MVP)
+## References
 
-- Layer 2 task-aware interpretation is not integrated yet.
-- No frontend UI yet.
-- No PDF/report generation yet.
+- Project concept: `docs/main-idea.md`
+- Full MVP plan: `docs/bias_audit_mvp_plan.md`
 
 ## License
 
-No license file has been added yet.
+No license file added yet.

@@ -1,0 +1,357 @@
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font-sans); }
+  .container { padding: 1rem 0; }
+  .week-tabs { display: flex; gap: 8px; margin-bottom: 1.5rem; flex-wrap: wrap; }
+  .tab { padding: 8px 16px; border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); font-size: 13px; cursor: pointer; background: var(--color-background-primary); color: var(--color-text-secondary); transition: all 0.15s; }
+  .tab.active { background: var(--color-background-secondary); color: var(--color-text-primary); border-color: var(--color-border-primary); font-weight: 500; }
+  .week-panel { display: none; }
+  .week-panel.active { display: block; }
+  .week-header { margin-bottom: 1rem; }
+  .week-title { font-size: 16px; font-weight: 500; color: var(--color-text-primary); }
+  .week-subtitle { font-size: 13px; color: var(--color-text-secondary); margin-top: 4px; }
+  .week-goal { font-size: 13px; padding: 10px 14px; border-left: 2px solid; border-radius: 0; margin-bottom: 1.25rem; }
+  .tasks { display: flex; flex-direction: column; gap: 8px; margin-bottom: 1.25rem; }
+  .task { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 12px 14px; display: flex; gap: 12px; align-items: flex-start; cursor: pointer; }
+  .task:hover { border-color: var(--color-border-secondary); }
+  .task-check { width: 18px; height: 18px; border: 0.5px solid var(--color-border-secondary); border-radius: 4px; flex-shrink: 0; margin-top: 1px; display: flex; align-items: center; justify-content: center; }
+  .task.done .task-check { background: var(--color-background-success); border-color: var(--color-border-success); }
+  .task.done .task-check::after { content: ''; display: block; width: 10px; height: 6px; border-left: 1.5px solid var(--color-text-success); border-bottom: 1.5px solid var(--color-text-success); transform: rotate(-45deg) translate(1px, -1px); }
+  .task-body { flex: 1; }
+  .task-name { font-size: 14px; color: var(--color-text-primary); font-weight: 500; line-height: 1.4; }
+  .task.done .task-name { color: var(--color-text-secondary); text-decoration: line-through; }
+  .task-desc { font-size: 12px; color: var(--color-text-secondary); margin-top: 3px; line-height: 1.5; }
+  .task-tag { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: var(--border-radius-md); margin-top: 6px; }
+  .tag-stat { background: var(--color-background-info); color: var(--color-text-info); }
+  .tag-agent { background: #EEEDFE; color: #3C3489; }
+  .tag-report { background: var(--color-background-success); color: var(--color-text-success); }
+  .tag-eval { background: var(--color-background-warning); color: var(--color-text-warning); }
+  .tag-infra { background: var(--color-background-secondary); color: var(--color-text-secondary); }
+  .deliverable { border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 12px 14px; margin-top: 1rem; }
+  .deliverable-label { font-size: 11px; font-weight: 500; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px; }
+  .deliverable-text { font-size: 13px; color: var(--color-text-primary); line-height: 1.6; }
+  .progress-bar-wrap { margin: 1.25rem 0 0; }
+  .progress-label { font-size: 12px; color: var(--color-text-secondary); margin-bottom: 6px; display: flex; justify-content: space-between; }
+  .progress-track { height: 6px; background: var(--color-background-secondary); border-radius: 4px; overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 4px; transition: width 0.3s; }
+  .ask-btn { display: inline-block; margin-top: 1rem; padding: 8px 16px; font-size: 13px; cursor: pointer; border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); background: transparent; color: var(--color-text-primary); }
+  .ask-btn:hover { background: var(--color-background-secondary); }
+  .overview { display: flex; gap: 8px; margin-bottom: 1.5rem; flex-wrap: wrap; }
+  .ov-card { flex: 1; min-width: 120px; background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 10px 12px; }
+  .ov-week { font-size: 11px; color: var(--color-text-secondary); margin-bottom: 4px; }
+  .ov-theme { font-size: 13px; font-weight: 500; color: var(--color-text-primary); }
+  .ov-dates { font-size: 11px; color: var(--color-text-secondary); margin-top: 2px; }
+</style>
+<div class="container">
+  <div class="overview">
+    <div class="ov-card"><div class="ov-week">Week 1</div><div class="ov-theme">Statistical layer</div><div class="ov-dates">Apr 4 – 10</div></div>
+    <div class="ov-card"><div class="ov-week">Week 2</div><div class="ov-theme">Agent pipeline</div><div class="ov-dates">Apr 11 – 17</div></div>
+    <div class="ov-card"><div class="ov-week">Week 3</div><div class="ov-theme">Reports + deploy</div><div class="ov-dates">Apr 18 – 24</div></div>
+    <div class="ov-card"><div class="ov-week">Week 4</div><div class="ov-theme">Eval + polish</div><div class="ov-dates">Apr 25 – 30</div></div>
+  </div>
+
+  <div class="week-tabs">
+    <button class="tab active" onclick="showWeek(0)">Week 1 — Stats layer</button>
+    <button class="tab" onclick="showWeek(1)">Week 2 — Agent</button>
+    <button class="tab" onclick="showWeek(2)">Week 3 — Reports & deploy</button>
+    <button class="tab" onclick="showWeek(3)">Week 4 — Eval & polish</button>
+  </div>
+
+  <div id="w0" class="week-panel active">
+    <div class="week-header">
+      <div class="week-title">Week 1 — Build the statistical analysis layer</div>
+      <div class="week-subtitle">Apr 4 – 10 &nbsp;·&nbsp; Goal: a fully working Layer 1 that takes a CSV and outputs bias metrics as JSON</div>
+    </div>
+    <div style="background:#E6F1FB; color:#0C447C; padding:10px 14px; border-left:2px solid #185FA5; border-radius:0; font-size:13px; margin-bottom:1.25rem; line-height:1.6;">
+      By end of week: upload a dataset → get back a JSON file with class imbalance, missing value patterns, sensitive attribute correlations, and severity scores. No LLM yet.
+    </div>
+    <div class="tasks" id="tasks-0">
+      <div class="task" onclick="toggleTask(this)">
+        <div class="task-check"></div>
+        <div class="task-body">
+          <div class="task-name">Set up project skeleton</div>
+          <div class="task-desc">FastAPI app, folder structure, requirements.txt, basic /upload endpoint that accepts a CSV file</div>
+          <span class="task-tag tag-infra">infra</span>
+        </div>
+      </div>
+      <div class="task" onclick="toggleTask(this)">
+        <div class="task-check"></div>
+        <div class="task-body">
+          <div class="task-name">Class distribution + imbalance ratio</div>
+          <div class="task-desc">Compute label value counts, imbalance ratio (majority/minority), flag if ratio > threshold</div>
+          <span class="task-tag tag-stat">statistics</span>
+        </div>
+      </div>
+      <div class="task" onclick="toggleTask(this)">
+        <div class="task-check"></div>
+        <div class="task-body">
+          <div class="task-name">Missing value analysis by group</div>
+          <div class="task-desc">For each sensitive column, compute missingness rate per group. Flag differential missingness.</div>
+          <span class="task-tag tag-stat">statistics</span>
+        </div>
+      </div>
+      <div class="task" onclick="toggleTask(this)">
+        <div class="task-check"></div>
+        <div class="task-body">
+          <div class="task-name">Sensitive attribute correlation</div>
+          <div class="task-desc">Cramér's V or point-biserial between sensitive columns and the target label</div>
+          <span class="task-tag tag-stat">statistics</span>
+        </div>
+      </div>
+      <div class="task" onclick="toggleTask(this)">
+        <div class="task-check"></div>
+        <div class="task-body">
+          <div class="task-name">Subgroup label distribution</div>
+          <div class="task-desc">For each sensitive attribute, show positive label rate per subgroup. Compute demographic parity gap.</div>
+          <span class="task-tag tag-stat">statistics</span>
+        </div>
+      </div>
+      <div class="task" onclick="toggleTask(this)">
+        <div class="task-check"></div>
+        <div class="task-body">
+          <div class="task-name">Severity scoring</div>
+          <div class="task-desc">Assign severity (low / medium / high) to each detected issue based on thresholds. Output structured JSON.</div>
+          <span class="task-tag tag-stat">statistics</span>
+        </div>
+      </div>
+      <div class="task" onclick="toggleTask(this)">
+        <div class="task-check"></div>
+        <div class="task-body">
+          <div class="task-name">Smoke test on Adult Income dataset</div>
+          <div class="task-desc">Run Layer 1 on the Adult Income dataset. Verify it catches gender and race imbalance correctly.</div>
+          <span class="task-tag tag-infra">infra</span>
+        </div>
+      </div>
+    </div>
+    <div class="deliverable">
+      <div class="deliverable-label">End-of-week deliverable</div>
+      <div class="deliverable-text">POST /analyze returns a valid JSON audit report with metrics + severity scores for any uploaded tabular CSV</div>
+    </div>
+    <div class="progress-bar-wrap">
+      <div class="progress-label"><span>Progress</span><span id="prog-0">0 / 7</span></div>
+      <div class="progress-track"><div class="progress-fill" id="fill-0" style="width:0%; background:#185FA5;"></div></div>
+    </div>
+    <button class="ask-btn" onclick="sendPrompt('Can you help me write the FastAPI skeleton and the class imbalance module for Week 1?')">Help me start Week 1 code ↗</button>
+  </div>
+
+  <div id="w1" class="week-panel">
+    <div class="week-header">
+      <div class="week-title">Week 2 — Build the agent interpretation pipeline</div>
+      <div class="week-subtitle">Apr 11 – 17 &nbsp;·&nbsp; Goal: LangGraph agent that reads Layer 1 JSON + task description and produces task-aware bias analysis</div>
+    </div>
+    <div style="background:#EEEDFE; color:#3C3489; padding:10px 14px; border-left:2px solid #534AB7; border-radius:0; font-size:13px; margin-bottom:1.25rem; line-height:1.6;">
+      By end of week: user inputs a task description (e.g. "predict loan default") + uploads dataset → agent explains which bias issues matter for that task and suggests mitigations with code.
+    </div>
+    <div class="tasks" id="tasks-1">
+      <div class="task" onclick="toggleTask(this)">
+        <div class="task-check"></div>
+        <div class="task-body">
+          <div class="task-name">Add task description input to the API</div>
+          <div class="task-desc">Accept a free-text task description alongside the dataset upload. Pass both to the agent.</div>
+          <span class="task-tag tag-infra">infra</span>
+        </div>
+      </div>
+      <div class="task" onclick="toggleTask(this)">
+        <div class="task-check"></div>
+        <div class="task-body">
+          <div class="task-name">Build LangGraph pipeline skeleton</div>
+          <div class="task-desc">Define nodes: parse → analyze → interpret → recommend → report. Wire state graph.</div>
+          <span class="task-tag tag-agent">agent</span>
+        </div>
+      </div>
+      <div class="task" onclick="toggleTask(this)">
+        <div class="task-check"></div>
+        <div class="task-body">
+          <div class="task-name">Interpret node — task-aware relevance</div>
+          <div class="task-desc">Prompt LLM to reason: "given task X and these statistical issues, which issues are harmful and why?" Focus heavily on this prompt — it's the core value.</div>
+          <span class="task-tag tag-agent">agent</span>
+        </div>
+      </div>
+      <div class="task" onclick="toggleTask(this)">
+        <div class="task-check"></div>
+        <div class="task-body">
+          <div class="task-name">Recommend node — mitigation strategies</div>
+          <div class="task-desc">Generate ranked mitigations per issue: resampling, reweighting, data collection, feature removal. Include Python code snippets.</div>
+          <span class="task-tag tag-agent">agent</span>
+        </div>
+      </div>
+      <div class="task" onclick="toggleTask(this)">
+        <div class="task-check"></div>
+        <div class="task-body">
+          <div class="task-name">Clarifying question logic</div>
+          <div class="task-desc">If task description is ambiguous, agent asks 1–2 clarifying questions before interpreting. Keep simple — don't over-engineer.</div>
+          <span class="task-tag tag-agent">agent</span>
+        </div>
+      </div>
+      <div class="task" onclick="toggleTask(this)">
+        <div class="task-check"></div>
+        <div class="task-body">
+          <div class="task-name">Basic Streamlit UI</div>
+          <div class="task-desc">File upload + task description text box + display JSON/text output. Just functional, not pretty yet.</div>
+          <span class="task-tag tag-infra">infra</span>
+        </div>
+      </div>
+    </div>
+    <div class="deliverable">
+      <div class="deliverable-label">End-of-week deliverable</div>
+      <div class="deliverable-text">Full pipeline working end-to-end: CSV + task → Layer 1 JSON → agent interpretation → mitigation recommendations in browser</div>
+    </div>
+    <div class="progress-bar-wrap">
+      <div class="progress-label"><span>Progress</span><span id="prog-1">0 / 6</span></div>
+      <div class="progress-track"><div class="progress-fill" id="fill-1" style="width:0%; background:#534AB7;"></div></div>
+    </div>
+    <button class="ask-btn" onclick="sendPrompt('Help me design the LangGraph pipeline for Week 2 — the interpret and recommend nodes with prompts')">Help me design the agent ↗</button>
+  </div>
+
+  <div id="w2" class="week-panel">
+    <div class="week-header">
+      <div class="week-title">Week 3 — Report generation + deployment</div>
+      <div class="week-subtitle">Apr 18 – 24 &nbsp;·&nbsp; Goal: downloadable PDF/markdown report and a live deployed demo</div>
+    </div>
+    <div style="background:#EAF3DE; color:#27500A; padding:10px 14px; border-left:2px solid #3B6D11; border-radius:0; font-size:13px; margin-bottom:1.25rem; line-height:1.6;">
+      By end of week: the full system is deployed on Hugging Face Spaces. Users can run an audit and download a structured report.
+    </div>
+    <div class="tasks" id="tasks-2">
+      <div class="task" onclick="toggleTask(this)">
+        <div class="task-check"></div>
+        <div class="task-body">
+          <div class="task-name">Report template design</div>
+          <div class="task-desc">Define sections: executive summary, ranked issues, visualizations, mitigation code, reproducibility note + "human review" disclaimer</div>
+          <span class="task-tag tag-report">report</span>
+        </div>
+      </div>
+      <div class="task" onclick="toggleTask(this)">
+        <div class="task-check"></div>
+        <div class="task-body">
+          <div class="task-name">Build visualizations</div>
+          <div class="task-desc">Matplotlib/Seaborn charts: class distribution bar, subgroup label rate comparison, correlation heatmap. Embed in report.</div>
+          <span class="task-tag tag-report">report</span>
+        </div>
+      </div>
+      <div class="task" onclick="toggleTask(this)">
+        <div class="task-check"></div>
+        <div class="task-body">
+          <div class="task-name">PDF generation</div>
+          <div class="task-desc">Use WeasyPrint or ReportLab to render the report. Alternatively markdown → PDF via pandoc if simpler.</div>
+          <span class="task-tag tag-report">report</span>
+        </div>
+      </div>
+      <div class="task" onclick="toggleTask(this)">
+        <div class="task-check"></div>
+        <div class="task-body">
+          <div class="task-name">Polish the Streamlit UI</div>
+          <div class="task-desc">Progress indicator during analysis, download button for report, better layout. Still Streamlit — no Next.js needed for MVP.</div>
+          <span class="task-tag tag-infra">infra</span>
+        </div>
+      </div>
+      <div class="task" onclick="toggleTask(this)">
+        <div class="task-check"></div>
+        <div class="task-body">
+          <div class="task-name">Deploy to Hugging Face Spaces</div>
+          <div class="task-desc">Dockerize or use Streamlit Space. Add API key via HF secrets. Test with real dataset upload.</div>
+          <span class="task-tag tag-infra">infra</span>
+        </div>
+      </div>
+    </div>
+    <div class="deliverable">
+      <div class="deliverable-label">End-of-week deliverable</div>
+      <div class="deliverable-text">Live public URL on Hugging Face Spaces. Anyone can upload a CSV, describe their task, and download a PDF audit report.</div>
+    </div>
+    <div class="progress-bar-wrap">
+      <div class="progress-label"><span>Progress</span><span id="prog-2">0 / 5</span></div>
+      <div class="progress-track"><div class="progress-fill" id="fill-2" style="width:0%; background:#3B6D11;"></div></div>
+    </div>
+    <button class="ask-btn" onclick="sendPrompt('Help me build the PDF report generation module for Week 3 using WeasyPrint')">Help me with report generation ↗</button>
+  </div>
+
+  <div id="w3" class="week-panel">
+    <div class="week-header">
+      <div class="week-title">Week 4 — Evaluation + documentation</div>
+      <div class="week-subtitle">Apr 25 – 30 &nbsp;·&nbsp; Goal: prove the system works on known biased datasets. Write it up properly.</div>
+    </div>
+    <div style="background:#FAEEDA; color:#633806; padding:10px 14px; border-left:2px solid #854F0B; border-radius:0; font-size:13px; margin-bottom:1.25rem; line-height:1.6;">
+      By end of week: evaluation results on COMPAS, Adult Income, CelebA. A README that explains the system clearly enough to be shared publicly.
+    </div>
+    <div class="tasks" id="tasks-3">
+      <div class="task" onclick="toggleTask(this)">
+        <div class="task-check"></div>
+        <div class="task-body">
+          <div class="task-name">Run audit on COMPAS dataset</div>
+          <div class="task-desc">Task: "predict recidivism". Verify the system flags racial bias in false positive rates. Document what it catches vs misses.</div>
+          <span class="task-tag tag-eval">evaluation</span>
+        </div>
+      </div>
+      <div class="task" onclick="toggleTask(this)">
+        <div class="task-check"></div>
+        <div class="task-body">
+          <div class="task-name">Run audit on Adult Income dataset</div>
+          <div class="task-desc">Task: "predict income > $50k". Verify gender + race issues are detected and explained correctly.</div>
+          <span class="task-tag tag-eval">evaluation</span>
+        </div>
+      </div>
+      <div class="task" onclick="toggleTask(this)">
+        <div class="task-check"></div>
+        <div class="task-body">
+          <div class="task-name">Run audit on CelebA dataset</div>
+          <div class="task-desc">Task: "classify facial attributes". Check if demographic imbalance and attribute correlations are surfaced.</div>
+          <span class="task-tag tag-eval">evaluation</span>
+        </div>
+      </div>
+      <div class="task" onclick="toggleTask(this)">
+        <div class="task-check"></div>
+        <div class="task-body">
+          <div class="task-name">Document known limitations</div>
+          <div class="task-desc">Write a limitations section: what the LLM can get wrong, what Layer 1 doesn't cover, "human review recommended" placement.</div>
+          <span class="task-tag tag-eval">evaluation</span>
+        </div>
+      </div>
+      <div class="task" onclick="toggleTask(this)">
+        <div class="task-check"></div>
+        <div class="task-body">
+          <div class="task-name">Write README and project documentation</div>
+          <div class="task-desc">Clear setup instructions, architecture diagram, example outputs, how to reproduce evaluation results.</div>
+          <span class="task-tag tag-infra">infra</span>
+        </div>
+      </div>
+    </div>
+    <div class="deliverable">
+      <div class="deliverable-label">End-of-week deliverable</div>
+      <div class="deliverable-text">Evaluation report showing results on 3 known-biased datasets + polished README + public demo link. Project is shareable.</div>
+    </div>
+    <div class="progress-bar-wrap">
+      <div class="progress-label"><span>Progress</span><span id="prog-3">0 / 5</span></div>
+      <div class="progress-track"><div class="progress-fill" id="fill-3" style="width:0%; background:#854F0B;"></div></div>
+    </div>
+    <button class="ask-btn" onclick="sendPrompt('Help me design an evaluation framework to test my bias audit tool against COMPAS and Adult Income datasets')">Help me plan evaluation ↗</button>
+  </div>
+</div>
+
+<script>
+  const totals = [7, 6, 5, 5];
+  const colors = ['#185FA5', '#534AB7', '#3B6D11', '#854F0B'];
+  let active = 0;
+
+  function showWeek(i) {
+    document.querySelectorAll('.week-panel').forEach((p, idx) => {
+      p.classList.toggle('active', idx === i);
+    });
+    document.querySelectorAll('.tab').forEach((t, idx) => {
+      t.classList.toggle('active', idx === i);
+    });
+    active = i;
+  }
+
+  function toggleTask(el) {
+    el.classList.toggle('done');
+    updateProgress(active);
+  }
+
+  function updateProgress(w) {
+    const tasks = document.querySelectorAll('#tasks-' + w + ' .task');
+    const done = document.querySelectorAll('#tasks-' + w + ' .task.done').length;
+    const pct = Math.round((done / totals[w]) * 100);
+    document.getElementById('fill-' + w).style.width = pct + '%';
+    document.getElementById('prog-' + w).textContent = done + ' / ' + totals[w];
+  }
+</script>

@@ -59,4 +59,4 @@ Use the API:
 - open `http://127.0.0.1:8000/docs`
 - call the audit endpoint with dataset, target column, and sensitive columns
 
-For system design details, see `ARCHITECTURE.md`.
+For system design details, see [ARCHITECTURE.md](./ARCHITECTURE.md).

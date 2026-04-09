@@ -17,13 +17,13 @@ uvicorn backend.main:app --reload
 python -m pytest
 ```
 
-- Run a single test file:
+- Run a single test file ([`tests/test_layer1.py`](./tests/test_layer1.py)):
 
 ```bash
 python -m pytest tests/test_layer1.py
 ```
 
-- Run a single test case:
+- Run a single test case in [`tests/test_layer1.py`](./tests/test_layer1.py):
 
 ```bash
 python -m pytest tests/test_layer1.py::test_performance_100k_under_10_seconds
@@ -33,9 +33,9 @@ python -m pytest tests/test_layer1.py::test_performance_100k_under_10_seconds
 
 - Keep Layer 1 deterministic. The same input should produce the same output.
 - Add or update tests whenever analyzer behavior changes.
-- Keep severity thresholds centralized in `backend/utils/config.py`.
+- Keep severity thresholds centralized in [`backend/utils/config.py`](./backend/utils/config.py).
 - Preserve offline test reliability:
-  - use local fixtures in `tests/fixtures/`
+  - use local fixtures in [`tests/fixtures/`](./tests/fixtures/)
   - avoid introducing network dependencies in default test runs
 - If you add new layers (agent/reporting), keep boundaries clear:
   - statistical computation in Layer 1

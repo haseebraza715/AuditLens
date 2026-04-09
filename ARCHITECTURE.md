@@ -11,16 +11,16 @@ Layer status:
 
 ## Key Components
 
-- `backend/main.py`: FastAPI app bootstrap and router wiring.
-- `backend/routers/audit.py`: request validation and audit endpoint.
-- `backend/layer1/audit.py`: orchestrates analyzers into one report.
-- `backend/layer1/class_distribution.py`: target class imbalance checks.
-- `backend/layer1/missing_values.py`: missingness checks across groups.
-- `backend/layer1/correlations.py`: sensitive-to-target correlation checks.
-- `backend/layer1/subgroup_analysis.py`: subgroup outcome and parity checks.
-- `backend/layer1/severity_scorer.py`: severity assignment and issue ranking.
-- `backend/utils/schema.py`: report schema.
-- `backend/utils/config.py`: thresholds and sorting configuration.
+- [`backend/main.py`](./backend/main.py): FastAPI app bootstrap and router wiring.
+- [`backend/routers/audit.py`](./backend/routers/audit.py): request validation and audit endpoint.
+- [`backend/layer1/audit.py`](./backend/layer1/audit.py): orchestrates analyzers into one report.
+- [`backend/layer1/class_distribution.py`](./backend/layer1/class_distribution.py): target class imbalance checks.
+- [`backend/layer1/missing_values.py`](./backend/layer1/missing_values.py): missingness checks across groups.
+- [`backend/layer1/correlations.py`](./backend/layer1/correlations.py): sensitive-to-target correlation checks.
+- [`backend/layer1/subgroup_analysis.py`](./backend/layer1/subgroup_analysis.py): subgroup outcome and parity checks.
+- [`backend/layer1/severity_scorer.py`](./backend/layer1/severity_scorer.py): severity assignment and issue ranking.
+- [`backend/utils/schema.py`](./backend/utils/schema.py): report schema.
+- [`backend/utils/config.py`](./backend/utils/config.py): thresholds and sorting configuration.
 
 ## Data Flow
 

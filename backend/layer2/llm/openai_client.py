@@ -19,11 +19,14 @@ class OpenAICompatibleClient(BaseLLMClient):
 
     def complete_json(self, prompt: str) -> str:
         try:
-            response = self._client.responses.create(
+            response = self._client.chat.completions.create(
                 model=self._model,
-                input=prompt,
+                messages=[{"role": "user", "content": prompt}],
                 response_format={"type": "json_object"},
             )
-            return response.output_text
+            content = response.choices[0].message.content or ""
+            if not content:
+                raise Layer2ProviderError("LLM provider returned empty response")
+            return content
         except Exception as exc:  # pragma: no cover - external provider behavior
             raise Layer2ProviderError("LLM provider request failed") from exc

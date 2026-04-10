@@ -25,6 +25,7 @@ Layer status:
 - [`backend/layer2/nodes/`](./backend/layer2/nodes/): parse/analyze/clarify/interpret/recommend/report pipeline nodes.
 - [`backend/layer2/llm/`](./backend/layer2/llm/): provider abstraction for OpenAI/Groq-compatible clients.
 - [`backend/layer3/report_generator.py`](./backend/layer3/report_generator.py): markdown report assembly for delivery.
+- [`backend/layer3/visualizations.py`](./backend/layer3/visualizations.py): chart generation used in PDF reports.
 
 ## Data Flow
 
@@ -34,7 +35,7 @@ Layer status:
 4. Findings are scored and sorted by severity.
 5. Layer 2 (via `/analyze-task` or `/analyze-task-report`) runs parse -> analyze -> clarify/interpret -> recommend -> report.
 6. API returns clarification questions or a structured task-aware report.
-7. Layer 3 (via `/analyze-task-report`) generates shareable Markdown from final Layer 2 output.
+7. Layer 3 generates shareable Markdown (`/analyze-task-report`) and PDF artifacts (`/analyze-task-report-pdf`).
 
 ## Diagram
 
@@ -59,5 +60,7 @@ graph TD
     N --> O["Layer 2 recommend"]
     O --> P["Layer 2 report"]
     P --> Q["Layer 3 markdown generator"]
-    Q --> R["Report artifact response"]
+    P --> S["Layer 3 chart + PDF generator"]
+    Q --> R["Markdown artifact response"]
+    S --> T["PDF artifact response"]
 ```

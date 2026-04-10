@@ -68,6 +68,7 @@ Layer 3 report endpoint:
 - use `POST /analyze-task-report` with the same inputs as `/analyze-task`
 - on completion, response includes `report_artifact` with Markdown report content (`auditlens_report.md`)
 - if task context is ambiguous, response returns `needs_clarification` before report generation
+- use `POST /analyze-task-report-pdf` to receive PDF output as base64 in `report_artifact.content` (`auditlens_report.pdf`)
 
 Example clarification follow-up:
 - first call returns `needs_clarification` with targeted questions

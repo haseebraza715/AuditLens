@@ -12,3 +12,5 @@ langgraph
 langchain
 langchain-openai
 openai
+matplotlib
+reportlab

@@ -1,3 +1,3 @@
-from backend.layer3.report_generator import build_markdown_report
+from backend.layer3.report_generator import build_markdown_report, build_pdf_report, encode_pdf_base64
 
-__all__ = ["build_markdown_report"]
+__all__ = ["build_markdown_report", "build_pdf_report", "encode_pdf_base64"]

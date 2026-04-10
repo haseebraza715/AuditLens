@@ -62,7 +62,7 @@ class AnalyzeTaskComplete(BaseModel):
 
 
 class ReportArtifact(BaseModel):
-    format: Literal["markdown"]
+    format: Literal["markdown", "pdf_base64"]
     filename: str
     content: str
 

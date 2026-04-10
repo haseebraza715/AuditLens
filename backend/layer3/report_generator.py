@@ -1,7 +1,17 @@
 from __future__ import annotations
 
+import base64
+import io
 from datetime import datetime, timezone
 from typing import Any
+
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib.units import inch
+from reportlab.platypus import Image, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+
+from backend.layer3.visualizations import build_issue_type_chart, build_severity_summary_chart
 
 
 def _severity_badge(severity: str) -> str:
@@ -140,3 +150,123 @@ def build_markdown_report(
     lines.append("")
 
     return "\n".join(lines).strip() + "\n"
+
+
+def build_pdf_report(
+    *,
+    final_report: dict[str, Any],
+    layer1_report: dict[str, Any] | None = None,
+    generated_at_utc: datetime | None = None,
+) -> bytes:
+    issued_at = generated_at_utc or datetime.now(timezone.utc)
+    task_context = final_report.get("task_context", {}) or {}
+    issues = list(final_report.get("issues", []) or [])
+    summary = _safe_text(final_report.get("summary", ""))
+    disclaimer = _safe_text(final_report.get("disclaimer", ""))
+
+    severity_chart = build_severity_summary_chart(layer1_report)
+    issue_type_chart = build_issue_type_chart(final_report)
+
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4, leftMargin=42, rightMargin=42, topMargin=42, bottomMargin=42)
+    styles = getSampleStyleSheet()
+    story = []
+
+    story.append(Paragraph("AuditLens Bias Audit Report", styles["Title"]))
+    story.append(Spacer(1, 8))
+    story.append(Paragraph(f"Generated (UTC): {issued_at.isoformat()}", styles["Normal"]))
+    story.append(Paragraph(f"Total issues: {len(issues)}", styles["Normal"]))
+    story.append(Spacer(1, 12))
+
+    story.append(Paragraph("Task Description", styles["Heading2"]))
+    story.append(Paragraph(_safe_text(final_report.get("task_description", "")) or "Not provided.", styles["Normal"]))
+    story.append(Spacer(1, 10))
+
+    story.append(Paragraph("Executive Summary", styles["Heading2"]))
+    story.append(Paragraph(summary or "No summary generated.", styles["Normal"]))
+    story.append(Spacer(1, 10))
+
+    story.append(Paragraph("Task Context", styles["Heading2"]))
+    task_rows = [
+        ["Task type", _safe_text(task_context.get("task_type", "unknown"))],
+        ["Stakes level", _safe_text(task_context.get("stakes_level", "unknown"))],
+        ["Affected population", _safe_text(task_context.get("affected_population", "unknown"))],
+        ["Decision impact", _safe_text(task_context.get("decision_impact", "unknown"))],
+    ]
+    task_table = Table(task_rows, colWidths=[1.8 * inch, 4.9 * inch])
+    task_table.setStyle(
+        TableStyle(
+            [
+                ("BOX", (0, 0), (-1, -1), 0.7, colors.grey),
+                ("INNERGRID", (0, 0), (-1, -1), 0.4, colors.lightgrey),
+                ("BACKGROUND", (0, 0), (0, -1), colors.whitesmoke),
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ]
+        )
+    )
+    story.append(task_table)
+    story.append(Spacer(1, 12))
+
+    story.append(Paragraph("Charts", styles["Heading2"]))
+    story.append(Image(io.BytesIO(severity_chart), width=5.6 * inch, height=3.0 * inch))
+    story.append(Spacer(1, 8))
+    story.append(Image(io.BytesIO(issue_type_chart), width=5.8 * inch, height=3.1 * inch))
+    story.append(Spacer(1, 12))
+
+    story.append(Paragraph("Findings", styles["Heading2"]))
+    if not issues:
+        story.append(Paragraph("No issues were included in this report.", styles["Normal"]))
+    else:
+        for index, issue_entry in enumerate(issues, start=1):
+            statistical = issue_entry.get("statistical_issue", {}) or {}
+            interpretation = issue_entry.get("interpretation", {}) or {}
+            mitigations = list(issue_entry.get("mitigations", []) or [])
+
+            issue_title = _safe_text(statistical.get("type", "dataset_issue")).replace("_", " ").title()
+            story.append(Paragraph(f"{index}. {issue_title}", styles["Heading3"]))
+            story.append(
+                Paragraph(
+                    f"Severity: {_safe_text(statistical.get('severity', 'low')).upper()} | "
+                    f"Issue ID: {_safe_text(statistical.get('issue_id', f'issue_{index}'))}",
+                    styles["Normal"],
+                )
+            )
+            story.append(Paragraph(_safe_text(statistical.get("description", "")), styles["Normal"]))
+            story.append(Spacer(1, 4))
+            story.append(Paragraph("Interpretation:", styles["BodyText"]))
+            story.append(
+                Paragraph(_safe_text(interpretation.get("why_harmful", "No interpretation provided.")), styles["Normal"])
+            )
+            story.append(
+                Paragraph(
+                    f"Likely impact: {_safe_text(interpretation.get('likely_model_impact', ''))}",
+                    styles["Normal"],
+                )
+            )
+
+            if mitigations:
+                story.append(Paragraph("Mitigations:", styles["BodyText"]))
+                for mitigation in mitigations[:3]:
+                    story.append(
+                        Paragraph(
+                            f"- {_safe_text(mitigation.get('title', 'Mitigation'))} "
+                            f"({_safe_text(mitigation.get('difficulty', 'medium'))})",
+                            styles["Normal"],
+                        )
+                    )
+            story.append(Spacer(1, 8))
+
+    story.append(Paragraph("Disclaimer", styles["Heading2"]))
+    story.append(
+        Paragraph(
+            disclaimer or "Human review is strongly recommended before deployment decisions.",
+            styles["Normal"],
+        )
+    )
+
+    doc.build(story)
+    return buffer.getvalue()
+
+
+def encode_pdf_base64(pdf_bytes: bytes) -> str:
+    return base64.b64encode(pdf_bytes).decode("ascii")

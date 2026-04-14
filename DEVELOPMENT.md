@@ -5,8 +5,8 @@
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
-uvicorn backend.main:app --reload
+.venv/bin/python -m pip install -r requirements.txt
+.venv/bin/uvicorn backend.main:app --reload
 ```
 
 ## Important Commands
@@ -14,19 +14,19 @@ uvicorn backend.main:app --reload
 - Run all tests:
 
 ```bash
-python -m pytest
+.venv/bin/python -m pytest
 ```
 
 - Run a single test file ([`tests/test_layer1.py`](./tests/test_layer1.py)):
 
 ```bash
-python -m pytest tests/test_layer1.py
+.venv/bin/python -m pytest tests/test_layer1.py
 ```
 
 - Run a single test case in [`tests/test_layer1.py`](./tests/test_layer1.py):
 
 ```bash
-python -m pytest tests/test_layer1.py::test_performance_100k_under_10_seconds
+.venv/bin/python -m pytest tests/test_layer1.py::test_performance_100k_under_10_seconds
 ```
 
 ## Contributor Notes

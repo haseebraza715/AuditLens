@@ -32,7 +32,7 @@ uvicorn backend.main:app --reload
 Run tests:
 
 ```bash
-python -m pytest
+python3 -m pytest
 ```
 
 ## Usage

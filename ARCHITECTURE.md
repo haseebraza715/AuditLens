@@ -2,17 +2,18 @@
 
 ## System Overview
 
-AuditLens evaluates tabular datasets for potential bias in a deterministic pipeline.
+AuditLens is a layered bias-audit system for tabular data.
 
 Layer status:
 - Layer 1: statistical audit (implemented)
 - Layer 2: task-aware interpretation (implemented)
-- Layer 3: report generation (in progress)
+- Layer 3: report generation, artifact storage, and async jobs (implemented)
+- Frontend: Streamlit UI for upload, configuration, clarification flow, and downloads
 
 ## Key Components
 
 - [`backend/main.py`](./backend/main.py): FastAPI app bootstrap and router wiring.
-- [`backend/routers/audit.py`](./backend/routers/audit.py): request validation and audit endpoint.
+- [`backend/routers/audit.py`](./backend/routers/audit.py): request validation and API endpoints.
 - [`backend/layer1/audit.py`](./backend/layer1/audit.py): orchestrates analyzers into one report.
 - [`backend/layer1/class_distribution.py`](./backend/layer1/class_distribution.py): target class imbalance checks.
 - [`backend/layer1/missing_values.py`](./backend/layer1/missing_values.py): missingness checks across groups.
@@ -23,44 +24,43 @@ Layer status:
 - [`backend/utils/config.py`](./backend/utils/config.py): thresholds and sorting configuration.
 - [`backend/layer2/agent.py`](./backend/layer2/agent.py): Layer 2 orchestration entrypoint.
 - [`backend/layer2/nodes/`](./backend/layer2/nodes/): parse/analyze/clarify/interpret/recommend/report pipeline nodes.
-- [`backend/layer2/llm/`](./backend/layer2/llm/): provider abstraction for OpenAI/Groq-compatible clients.
-- [`backend/layer3/report_generator.py`](./backend/layer3/report_generator.py): markdown report assembly for delivery.
-- [`backend/layer3/visualizations.py`](./backend/layer3/visualizations.py): chart generation used in PDF reports.
+- [`backend/layer2/llm/`](./backend/layer2/llm/): provider abstraction for OpenAI/Groq/OpenRouter-compatible clients.
+- [`backend/layer3/report_generator.py`](./backend/layer3/report_generator.py): Markdown/PDF report assembly.
+- [`backend/layer3/visualizations.py`](./backend/layer3/visualizations.py): chart generation for reports and UI.
+- [`backend/layer3/artifact_store.py`](./backend/layer3/artifact_store.py): artifact persistence and metadata.
+- [`backend/layer3/report_jobs.py`](./backend/layer3/report_jobs.py): async report job store and worker execution.
+- [`frontend/app.py`](./frontend/app.py): Streamlit entrypoint.
+- [`frontend/ui.py`](./frontend/ui.py): Streamlit rendering and interactions.
+- [`frontend/workflow.py`](./frontend/workflow.py): frontend orchestration for sync/async runs.
+- [`frontend/api_client.py`](./frontend/api_client.py): backend API client and error mapping.
 
 ## Data Flow
 
-1. Client submits dataset with target and sensitive column config.
-2. Router validates and normalizes request input.
-3. Layer 1 orchestrator executes analyzers.
-4. Findings are scored and sorted by severity.
-5. Layer 2 (via `/analyze-task` or `/analyze-task-report`) runs parse -> analyze -> clarify/interpret -> recommend -> report.
-6. API returns clarification questions or a structured task-aware report.
-7. Layer 3 generates shareable Markdown (`/analyze-task-report`) and PDF artifacts (`/analyze-task-report-pdf`).
+1. User uploads CSV and configures audit in Streamlit UI or via API.
+2. Router validates input and normalizes selected sensitive columns.
+3. Layer 1 computes deterministic statistical issues and severity ranking.
+4. Layer 2 runs graph nodes: parse -> analyze -> (clarify or interpret) -> recommend -> report.
+5. If context is ambiguous, API returns clarification questions and partial task context.
+6. On completion, Layer 3 generates report artifacts (Markdown or PDF).
+7. Optional async report job path stores result payload and artifact metadata for polling/download.
 
 ## Diagram
 
 ```mermaid
 graph TD
-    A["Dataset + audit parameters"] --> B["Request validation"]
-    B --> C["Layer 1 orchestrator"]
-    C --> D["Class distribution analyzer"]
-    C --> E["Missingness analyzer"]
-    C --> F["Correlation analyzer"]
-    C --> G["Subgroup analysis"]
-    D --> H["Severity scorer"]
-    E --> H
-    F --> H
-    G --> H
-    H --> I["Layer 1 report"]
-    I --> J["Layer 2 parse"]
-    J --> K["Layer 2 analyze"]
-    K --> L{"Needs clarification?"}
-    L -->|Yes| M["Clarifying questions response"]
-    L -->|No| N["Layer 2 interpret"]
-    N --> O["Layer 2 recommend"]
-    O --> P["Layer 2 report"]
-    P --> Q["Layer 3 markdown generator"]
-    P --> S["Layer 3 chart + PDF generator"]
-    Q --> R["Markdown artifact response"]
-    S --> T["PDF artifact response"]
+    A["Streamlit UI or API client"] --> B["Upload + config"]
+    B --> C["FastAPI router validation"]
+    C --> D["Layer 1 orchestrator"]
+    D --> E["Class / Missingness / Correlation / Subgroup analyzers"]
+    E --> F["Severity scoring + sorted issues"]
+    F --> G["Layer 2 graph: parse -> analyze"]
+    G --> H{"Needs clarification?"}
+    H -->|Yes| I["Clarifying questions response"]
+    H -->|No| J["Interpret -> Recommend -> Report nodes"]
+    J --> K["Layer 2 final report"]
+    K --> L{"Report mode"}
+    L -->|Sync| M["Generate Markdown or PDF artifact"]
+    L -->|Async| N["Queue report job + poll status"]
+    M --> O["Report artifact response"]
+    N --> P["Stored artifact metadata + download endpoint"]
 ```

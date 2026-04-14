@@ -2,31 +2,48 @@
 
 ## Overview
 
-AuditLens is a FastAPI service for deterministic bias auditing on tabular datasets before model training.
+AuditLens is a bias-audit system for tabular ML datasets with a FastAPI backend and a Streamlit frontend.
 
-Current implementation includes Layer 1 (statistical audit):
-- class distribution checks
-- missingness analysis by sensitive group
-- sensitive attribute correlation checks
-- subgroup outcome parity checks
-- severity scoring and ranked issue output
-
-Planned layers:
-- Layer 2: task-aware interpretation
-- Layer 3: report generation and delivery
+Implemented layers:
+- Layer 1: deterministic statistical bias checks
+- Layer 2: task-aware interpretation and mitigation recommendations via LLM provider
+- Layer 3: report generation (Markdown + PDF), artifacts, and async report jobs
 
 ## Setup
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
+python3 -m pip install -r requirements.txt
 ```
 
-Run the API locally:
+Create a `.env` file for Layer 2 provider settings.
+
+OpenRouter example:
+
+```env
+LAYER2_PROVIDER=openrouter
+OPENROUTER_API_KEY=your_openrouter_key
+OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
+OPENROUTER_MODEL=google/gemma-4-31b-it:free
+```
+
+Also supported:
+- `LAYER2_PROVIDER=openai` with `OPENAI_API_KEY`, `OPENAI_MODEL`, `OPENAI_BASE_URL`
+- `LAYER2_PROVIDER=groq` with `GROQ_API_KEY`, `GROQ_MODEL`, `GROQ_BASE_URL`
+
+## Run Locally
+
+Terminal 1 (backend):
 
 ```bash
-uvicorn backend.main:app --reload
+python3 -m uvicorn backend.main:app --reload --env-file .env
+```
+
+Terminal 2 (frontend):
+
+```bash
+python3 -m streamlit run frontend/app.py
 ```
 
 Run tests:
@@ -37,7 +54,29 @@ python3 -m pytest
 
 ## Usage
 
-Use the Python audit entrypoint directly:
+### Streamlit UI
+
+1. Upload a CSV file.
+2. Select target and sensitive columns.
+3. Enter task description.
+4. Run audit.
+5. If prompted, answer clarification questions.
+6. Download PDF or Markdown report.
+
+### API Endpoints
+
+- `POST /upload`: validate CSV and return columns/shape preview
+- `POST /analyze`: run Layer 1 only
+- `POST /analyze-task`: run Layer 1 + Layer 2
+- `POST /analyze-task-report`: return complete report + Markdown artifact
+- `POST /analyze-task-report-pdf`: return complete report + PDF artifact (base64)
+- `POST /analyze-task-report-store`: persist report artifact metadata
+- `POST /analyze-task-report-jobs`: queue async report generation job
+- `GET /analyze-task-report-jobs/{job_id}`: poll async job status/result
+- `GET /reports/{artifact_id}`: artifact metadata
+- `GET /reports/{artifact_id}/download`: artifact file download
+
+### Python Layer 1 Entrypoint
 
 ```python
 import pandas as pd
@@ -54,30 +93,10 @@ print(report["summary"])
 print(report["issues"])
 ```
 
-Use the API:
-- start the server with `uvicorn backend.main:app --reload`
-- open `http://127.0.0.1:8000/docs`
-- call the audit endpoint with dataset, target column, and sensitive columns
-
-Layer 2 task-aware endpoint:
-- use `POST /analyze-task` with the same CSV inputs plus required `task_description`
-- optional `clarification_answers` JSON can be sent on follow-up requests
-- response status is either `needs_clarification` or `complete`
-
-Layer 3 report endpoint:
-- use `POST /analyze-task-report` with the same inputs as `/analyze-task`
-- on completion, response includes `report_artifact` with Markdown report content (`auditlens_report.md`)
-- if task context is ambiguous, response returns `needs_clarification` before report generation
-- use `POST /analyze-task-report-pdf` to receive PDF output as base64 in `report_artifact.content` (`auditlens_report.pdf`)
-
-Example clarification follow-up:
-- first call returns `needs_clarification` with targeted questions
-- second call includes JSON answers in `clarification_answers` to receive `complete`
-
 ## Limitations
 
-- Layer 2 interpretation is LLM-assisted and can be wrong.
-- Recommendations should be reviewed by a qualified practitioner before deployment decisions.
-- Human review is strongly recommended for high-stakes use cases.
+- Layer 2 interpretation is LLM-assisted and may be inaccurate.
+- Fairness recommendations require human review before deployment decisions.
+- High-stakes use cases should include domain expert oversight.
 
-For system design details, see [ARCHITECTURE.md](./ARCHITECTURE.md).
+See [ARCHITECTURE.md](./ARCHITECTURE.md) for system structure and flow.

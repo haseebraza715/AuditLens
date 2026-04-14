@@ -6,7 +6,18 @@
 python3 -m venv .venv
 source .venv/bin/activate
 .venv/bin/python -m pip install -r requirements.txt
-.venv/bin/uvicorn backend.main:app --reload
+```
+
+Terminal 1 (backend):
+
+```bash
+.venv/bin/python -m uvicorn backend.main:app --reload --env-file .env
+```
+
+Terminal 2 (frontend):
+
+```bash
+.venv/bin/python -m streamlit run frontend/app.py
 ```
 
 ## Important Commands
@@ -15,6 +26,12 @@ source .venv/bin/activate
 
 ```bash
 .venv/bin/python -m pytest
+```
+
+- Compile frontend modules quickly:
+
+```bash
+.venv/bin/python -m py_compile frontend/app.py frontend/state.py frontend/api_client.py frontend/workflow.py frontend/ui.py frontend/constants.py
 ```
 
 - Run a single test file ([`tests/test_layer1.py`](./tests/test_layer1.py)):
@@ -41,3 +58,7 @@ source .venv/bin/activate
   - statistical computation in Layer 1
   - interpretation in Layer 2
   - presentation/reporting in Layer 3
+- Keep frontend boundaries clear:
+  - UI rendering in [`frontend/ui.py`](./frontend/ui.py)
+  - API and error handling in [`frontend/api_client.py`](./frontend/api_client.py)
+  - run orchestration in [`frontend/workflow.py`](./frontend/workflow.py)

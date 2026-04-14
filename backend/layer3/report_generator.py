@@ -11,7 +11,14 @@ from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.units import inch
 from reportlab.platypus import Image, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
-from backend.layer3.visualizations import build_issue_type_chart, build_severity_summary_chart
+from backend.layer3.visualizations import (
+    build_class_distribution_chart,
+    build_correlation_heatmap,
+    build_demographic_parity_chart,
+    build_issue_type_chart,
+    build_missingness_heatmap,
+    build_severity_summary_chart,
+)
 
 
 def _severity_badge(severity: str) -> str:
@@ -29,6 +36,18 @@ def _safe_text(value: Any) -> str:
     return str(value).strip()
 
 
+def _reproducibility_payload(final_report: dict[str, Any]) -> dict[str, Any]:
+    reproducibility = final_report.get("reproducibility", {}) or {}
+    thresholds = reproducibility.get("severity_thresholds", {}) or {}
+    return {
+        "generated_at_utc": _safe_text(reproducibility.get("generated_at_utc", "")),
+        "request_id": _safe_text(reproducibility.get("request_id", "")),
+        "layer2_provider": _safe_text(reproducibility.get("layer2_provider", "unknown")),
+        "layer2_model": _safe_text(reproducibility.get("layer2_model", "unknown")),
+        "severity_thresholds": thresholds if isinstance(thresholds, dict) else {},
+    }
+
+
 def build_markdown_report(
     *,
     final_report: dict[str, Any],
@@ -44,6 +63,7 @@ def build_markdown_report(
     disclaimer = _safe_text(final_report.get("disclaimer", ""))
     task_context = final_report.get("task_context", {}) or {}
     issues = list(final_report.get("issues", []) or [])
+    reproducibility = _reproducibility_payload(final_report)
 
     lines: list[str] = []
     lines.append("# AuditLens Bias Audit Report")
@@ -149,6 +169,23 @@ def build_markdown_report(
     lines.append(disclaimer or "Human review is strongly recommended before deployment decisions.")
     lines.append("")
 
+    lines.append("## Reproducibility")
+    lines.append("")
+    lines.append(f"- Generated at (UTC): `{reproducibility['generated_at_utc'] or issued_at.isoformat()}`")
+    lines.append(f"- Request ID: `{reproducibility['request_id'] or 'n/a'}`")
+    lines.append(f"- Layer 2 provider: `{reproducibility['layer2_provider']}`")
+    lines.append(f"- Layer 2 model: `{reproducibility['layer2_model']}`")
+    threshold_items = reproducibility["severity_thresholds"].items()
+    if threshold_items:
+        lines.append("- Severity thresholds:")
+        for metric, bounds in threshold_items:
+            medium = _safe_text((bounds or {}).get("medium", ""))
+            high = _safe_text((bounds or {}).get("high", ""))
+            lines.append(f"  - `{metric}`: medium=`{medium}`, high=`{high}`")
+    else:
+        lines.append("- Severity thresholds: _Not available_")
+    lines.append("")
+
     return "\n".join(lines).strip() + "\n"
 
 
@@ -163,9 +200,14 @@ def build_pdf_report(
     issues = list(final_report.get("issues", []) or [])
     summary = _safe_text(final_report.get("summary", ""))
     disclaimer = _safe_text(final_report.get("disclaimer", ""))
+    reproducibility = _reproducibility_payload(final_report)
 
     severity_chart = build_severity_summary_chart(layer1_report)
     issue_type_chart = build_issue_type_chart(final_report)
+    class_distribution_chart = build_class_distribution_chart(layer1_report)
+    demographic_parity_chart = build_demographic_parity_chart(layer1_report)
+    correlation_heatmap = build_correlation_heatmap(layer1_report)
+    missingness_heatmap = build_missingness_heatmap(layer1_report)
 
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=A4, leftMargin=42, rightMargin=42, topMargin=42, bottomMargin=42)
@@ -211,6 +253,14 @@ def build_pdf_report(
     story.append(Image(io.BytesIO(severity_chart), width=5.6 * inch, height=3.0 * inch))
     story.append(Spacer(1, 8))
     story.append(Image(io.BytesIO(issue_type_chart), width=5.8 * inch, height=3.1 * inch))
+    story.append(Spacer(1, 8))
+    story.append(Image(io.BytesIO(class_distribution_chart), width=5.8 * inch, height=3.1 * inch))
+    story.append(Spacer(1, 8))
+    story.append(Image(io.BytesIO(demographic_parity_chart), width=5.8 * inch, height=3.1 * inch))
+    story.append(Spacer(1, 8))
+    story.append(Image(io.BytesIO(correlation_heatmap), width=5.8 * inch, height=2.7 * inch))
+    story.append(Spacer(1, 8))
+    story.append(Image(io.BytesIO(missingness_heatmap), width=5.8 * inch, height=3.0 * inch))
     story.append(Spacer(1, 12))
 
     story.append(Paragraph("Findings", styles["Heading2"]))
@@ -263,6 +313,25 @@ def build_pdf_report(
             styles["Normal"],
         )
     )
+    story.append(Spacer(1, 10))
+    story.append(Paragraph("Reproducibility", styles["Heading2"]))
+    story.append(
+        Paragraph(
+            f"Generated at (UTC): {reproducibility['generated_at_utc'] or issued_at.isoformat()}",
+            styles["Normal"],
+        )
+    )
+    story.append(Paragraph(f"Request ID: {reproducibility['request_id'] or 'n/a'}", styles["Normal"]))
+    story.append(Paragraph(f"Layer 2 provider: {reproducibility['layer2_provider']}", styles["Normal"]))
+    story.append(Paragraph(f"Layer 2 model: {reproducibility['layer2_model']}", styles["Normal"]))
+    threshold_items = reproducibility["severity_thresholds"].items()
+    if threshold_items:
+        for metric, bounds in threshold_items:
+            medium = _safe_text((bounds or {}).get("medium", ""))
+            high = _safe_text((bounds or {}).get("high", ""))
+            story.append(Paragraph(f"- {metric}: medium={medium}, high={high}", styles["Normal"]))
+    else:
+        story.append(Paragraph("Severity thresholds: not available.", styles["Normal"]))
 
     doc.build(story)
     return buffer.getvalue()

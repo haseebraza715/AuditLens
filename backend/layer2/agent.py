@@ -72,6 +72,8 @@ def run_layer2_pipeline(
         "raw_json": layer1_report,
         "task_description": task_description,
         "clarification_answers": clarification_answers or {},
+        "layer2_provider": settings.provider,
+        "layer2_model": settings.model,
         "llm_client": llm_client,
         "max_retries": settings.max_retries,
     }

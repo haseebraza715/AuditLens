@@ -44,9 +44,18 @@ class Layer2IssueReport(BaseModel):
     mitigations: list[MitigationRecommendation] = Field(default_factory=list)
 
 
+class ReproducibilityMetadata(BaseModel):
+    generated_at_utc: str = ""
+    request_id: str = ""
+    layer2_provider: str = "unknown"
+    layer2_model: str = "unknown"
+    severity_thresholds: dict[str, dict[str, float]] = Field(default_factory=dict)
+
+
 class Layer2Report(BaseModel):
     task_description: str
     task_context: TaskContext
     issues: list[Layer2IssueReport]
     summary: str
     disclaimer: str
+    reproducibility: ReproducibilityMetadata = Field(default_factory=ReproducibilityMetadata)

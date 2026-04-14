@@ -4,6 +4,7 @@ import logging
 from typing import Any
 
 from backend.layer2.state import AuditState
+from backend.utils.config import SEVERITY_THRESHOLDS
 
 logger = logging.getLogger("layer2")
 
@@ -66,6 +67,13 @@ def report_node(state: AuditState) -> AuditState:
             "This report was generated with LLM-assisted interpretation. "
             "Human review is strongly recommended before making deployment decisions."
         ),
+        "reproducibility": {
+            "generated_at_utc": "",
+            "request_id": str(state.get("request_id", "")),
+            "layer2_provider": str(state.get("layer2_provider", "unknown")),
+            "layer2_model": str(state.get("layer2_model", "unknown")),
+            "severity_thresholds": SEVERITY_THRESHOLDS,
+        },
     }
 
     request_id = state.get("request_id", "")

@@ -18,6 +18,8 @@ class AuditState(TypedDict, total=False):
     needs_clarification: bool
     clarifying_questions: list[str]
     final_report: dict[str, Any]
+    layer2_provider: str
+    layer2_model: str
 
     llm_client: Any
     max_retries: int

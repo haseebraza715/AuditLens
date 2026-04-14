@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Annotated, Any, Literal, Union
+from typing import Annotated, Any, Literal, Optional, Union
 
 from pydantic import BaseModel, Field
 
@@ -80,6 +80,38 @@ class AnalyzeTaskReportComplete(BaseModel):
     report_artifact: ReportArtifact
 
 
+class StoredReportArtifact(BaseModel):
+    artifact_id: str
+    format: Literal["markdown", "pdf_base64"]
+    filename: str
+    media_type: str
+    created_at_utc: str
+    expires_at_utc: str
+
+
+class AnalyzeTaskStoredReportComplete(BaseModel):
+    status: Literal["complete"]
+    final_report: Layer2Report
+    report_artifact: ReportArtifact
+    stored_artifact: StoredReportArtifact
+
+
+class ReportJobAccepted(BaseModel):
+    job_id: str
+    status: Literal["queued", "running", "complete", "failed"]
+    created_at_utc: str
+    updated_at_utc: str
+
+
+class ReportJobStatus(BaseModel):
+    job_id: str
+    status: Literal["queued", "running", "complete", "failed"]
+    created_at_utc: str
+    updated_at_utc: str
+    result: Optional[dict[str, Any]] = None
+    error: Optional[str] = None
+
+
 AnalyzeTaskResponse = Annotated[
     Union[AnalyzeTaskNeedsClarification, AnalyzeTaskComplete],
     Field(discriminator="status"),
@@ -109,5 +141,9 @@ __all__ = [
     "ReportArtifact",
     "AnalyzeTaskReportNeedsClarification",
     "AnalyzeTaskReportComplete",
+    "StoredReportArtifact",
+    "AnalyzeTaskStoredReportComplete",
+    "ReportJobAccepted",
+    "ReportJobStatus",
     "AnalyzeTaskReportResponse",
 ]

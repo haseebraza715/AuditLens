@@ -3,19 +3,36 @@ from __future__ import annotations
 import io
 import json
 from json import JSONDecodeError
-from typing import Annotated, Optional
+from pathlib import Path
+from typing import Annotated, Literal, Optional
 from uuid import uuid4
 
 import pandas as pd
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
+from fastapi.responses import FileResponse
 from pandas.errors import EmptyDataError, ParserError
 
 from backend.layer2.agent import run_layer2_pipeline
 from backend.layer2.errors import Layer2InvalidResponseError, Layer2ProviderError
+from backend.layer3.artifact_store import (
+    ArtifactNotFoundError,
+    get_artifact_metadata,
+    save_report_artifact,
+)
+from backend.layer3.report_jobs import report_job_store, start_report_job
 from backend.layer3.report_generator import build_markdown_report, build_pdf_report, encode_pdf_base64
 from backend.utils.config import Layer2ConfigurationError, get_layer2_settings
 from backend.layer1.audit import run_layer1_audit
-from backend.utils.schema import AnalyzeTaskReportResponse, AnalyzeTaskResponse, AuditReport, UploadPreview
+from backend.utils.schema import (
+    AnalyzeTaskReportResponse,
+    AnalyzeTaskResponse,
+    ReportJobAccepted,
+    ReportJobStatus,
+    AnalyzeTaskStoredReportComplete,
+    AuditReport,
+    StoredReportArtifact,
+    UploadPreview,
+)
 
 router = APIRouter()
 
@@ -33,6 +50,15 @@ def _normalize_sensitive_columns(raw_values: list[str]) -> list[str]:
 def _read_csv_from_upload(file: UploadFile) -> pd.DataFrame:
     try:
         raw_bytes = file.file.read()
+        if not raw_bytes:
+            raise HTTPException(status_code=422, detail="Uploaded CSV is empty")
+        return pd.read_csv(io.BytesIO(raw_bytes))
+    except (ParserError, EmptyDataError):
+        raise HTTPException(status_code=422, detail="Malformed CSV file")
+
+
+def _read_csv_from_bytes(raw_bytes: bytes) -> pd.DataFrame:
+    try:
         if not raw_bytes:
             raise HTTPException(status_code=422, detail="Uploaded CSV is empty")
         return pd.read_csv(io.BytesIO(raw_bytes))
@@ -58,7 +84,8 @@ def _run_layer2_from_form(
     task_description: str,
     clarification_answers: Optional[str],
 ) -> tuple[dict[str, object], dict[str, object]]:
-    df = _read_csv_from_upload(file)
+    raw_bytes = file.file.read()
+    df = _read_csv_from_bytes(raw_bytes)
 
     normalized_sensitive = _normalize_sensitive_columns(sensitive_columns)
     if not normalized_sensitive:
@@ -113,6 +140,98 @@ def _run_layer2_from_form(
         raise HTTPException(status_code=502, detail=str(exc))
 
     return result, layer1_report
+
+
+def _run_layer2_from_raw_bytes(
+    *,
+    raw_bytes: bytes,
+    target_column: str,
+    sensitive_columns: list[str],
+    task_description: str,
+    clarification_answers: Optional[str],
+) -> tuple[dict[str, object], dict[str, object]]:
+    df = _read_csv_from_bytes(raw_bytes)
+
+    normalized_sensitive = _normalize_sensitive_columns(sensitive_columns)
+    if not normalized_sensitive:
+        raise HTTPException(status_code=422, detail="sensitive_columns must not be empty")
+
+    if not task_description.strip():
+        raise HTTPException(status_code=422, detail="task_description must not be empty")
+
+    if target_column not in df.columns:
+        raise HTTPException(
+            status_code=422,
+            detail=f"target_column '{target_column}' not found in CSV columns",
+        )
+
+    missing_sensitive = [col for col in normalized_sensitive if col not in df.columns]
+    if missing_sensitive:
+        raise HTTPException(
+            status_code=422,
+            detail=f"sensitive_columns not found in CSV columns: {missing_sensitive}",
+        )
+
+    clarification_payload = None
+    if clarification_answers:
+        clarification_payload = _parse_optional_json(clarification_answers)
+
+    try:
+        settings = get_layer2_settings()
+        if len(task_description) > settings.max_task_description_chars:
+            raise HTTPException(
+                status_code=422,
+                detail=(
+                    f"task_description exceeds {settings.max_task_description_chars} characters"
+                ),
+            )
+    except Layer2ConfigurationError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+
+    layer1_report = run_layer1_audit(df, target_column, normalized_sensitive)
+    try:
+        result = run_layer2_pipeline(
+            layer1_report=layer1_report,
+            task_description=task_description.strip(),
+            clarification_answers=clarification_payload,
+            request_id=str(uuid4()),
+        )
+    except Layer2ConfigurationError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+    except Layer2InvalidResponseError as exc:
+        raise HTTPException(status_code=502, detail=str(exc))
+    except Layer2ProviderError as exc:
+        raise HTTPException(status_code=502, detail=str(exc))
+
+    return result, layer1_report
+
+
+def _build_report_artifact_response(
+    *,
+    final_report: dict[str, object],
+    layer1_report: dict[str, object],
+    artifact_format: Literal["markdown", "pdf_base64"],
+) -> dict[str, object]:
+    if artifact_format == "markdown":
+        markdown_content = build_markdown_report(
+            final_report=final_report,
+            layer1_report=layer1_report,
+        )
+        return {
+            "format": "markdown",
+            "filename": "auditlens_report.md",
+            "content": markdown_content,
+        }
+
+    pdf_bytes = build_pdf_report(
+        final_report=final_report,
+        layer1_report=layer1_report,
+    )
+    return {
+        "format": "pdf_base64",
+        "filename": "auditlens_report.pdf",
+        "content": encode_pdf_base64(pdf_bytes),
+    }
 
 
 @router.get("/health")
@@ -194,19 +313,16 @@ def analyze_task_report(
         return result  # type: ignore[return-value]
 
     final_report = result.get("final_report", {})
-    markdown_content = build_markdown_report(
+    artifact = _build_report_artifact_response(
         final_report=final_report,
         layer1_report=layer1_report,
+        artifact_format="markdown",
     )
 
     return {
         "status": "complete",
         "final_report": final_report,
-        "report_artifact": {
-            "format": "markdown",
-            "filename": "auditlens_report.md",
-            "content": markdown_content,
-        },
+        "report_artifact": artifact,
     }
 
 
@@ -229,18 +345,154 @@ def analyze_task_report_pdf(
         return result  # type: ignore[return-value]
 
     final_report = result.get("final_report", {})
-    pdf_bytes = build_pdf_report(
+    artifact = _build_report_artifact_response(
         final_report=final_report,
         layer1_report=layer1_report,
+        artifact_format="pdf_base64",
     )
-    pdf_b64 = encode_pdf_base64(pdf_bytes)
 
     return {
         "status": "complete",
         "final_report": final_report,
-        "report_artifact": {
-            "format": "pdf_base64",
-            "filename": "auditlens_report.pdf",
-            "content": pdf_b64,
+        "report_artifact": artifact,
+    }
+
+
+@router.post("/analyze-task-report-store", response_model=AnalyzeTaskStoredReportComplete)
+def analyze_task_report_store(
+    file: Annotated[UploadFile, File(...)],
+    target_column: Annotated[str, Form(...)],
+    sensitive_columns: Annotated[list[str], Form(...)],
+    task_description: Annotated[str, Form(...)],
+    clarification_answers: Annotated[Optional[str], Form()] = None,
+) -> AnalyzeTaskStoredReportComplete:
+    response = analyze_task_report(
+        file=file,
+        target_column=target_column,
+        sensitive_columns=sensitive_columns,
+        task_description=task_description,
+        clarification_answers=clarification_answers,
+    )
+    if response.get("status") == "needs_clarification":
+        raise HTTPException(
+            status_code=422,
+            detail="Task context is ambiguous; resolve clarification before storing artifact",
+        )
+
+    artifact = response["report_artifact"]
+    metadata = save_report_artifact(
+        artifact_format=artifact["format"],
+        filename=artifact["filename"],
+        content=artifact["content"],
+    )
+
+    return {
+        **response,
+        "stored_artifact": {
+            "artifact_id": metadata["artifact_id"],
+            "format": metadata["format"],
+            "filename": metadata["filename"],
+            "media_type": metadata["media_type"],
+            "created_at_utc": metadata["created_at_utc"],
+            "expires_at_utc": metadata["expires_at_utc"],
         },
     }
+
+
+@router.get("/reports/{artifact_id}", response_model=StoredReportArtifact)
+def get_report_artifact(artifact_id: str) -> StoredReportArtifact:
+    try:
+        metadata = get_artifact_metadata(artifact_id)
+    except ArtifactNotFoundError:
+        raise HTTPException(status_code=404, detail=f"Artifact '{artifact_id}' not found")
+    return {
+        "artifact_id": metadata["artifact_id"],
+        "format": metadata["format"],
+        "filename": metadata["filename"],
+        "media_type": metadata["media_type"],
+        "created_at_utc": metadata["created_at_utc"],
+        "expires_at_utc": metadata["expires_at_utc"],
+    }
+
+
+@router.get("/reports/{artifact_id}/download")
+def download_report_artifact(artifact_id: str) -> FileResponse:
+    try:
+        metadata = get_artifact_metadata(artifact_id)
+    except ArtifactNotFoundError:
+        raise HTTPException(status_code=404, detail=f"Artifact '{artifact_id}' not found")
+
+    file_path = Path(str(metadata["storage_path"]))
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail=f"Artifact content for '{artifact_id}' not found")
+
+    return FileResponse(
+        path=str(file_path),
+        media_type=str(metadata["media_type"]),
+        filename=str(metadata["filename"]),
+    )
+
+
+@router.post("/analyze-task-report-jobs", response_model=ReportJobAccepted)
+def create_report_job(
+    file: Annotated[UploadFile, File(...)],
+    target_column: Annotated[str, Form(...)],
+    sensitive_columns: Annotated[list[str], Form(...)],
+    task_description: Annotated[str, Form(...)],
+    clarification_answers: Annotated[Optional[str], Form()] = None,
+    report_format: Annotated[Literal["markdown", "pdf_base64"], Form()] = "markdown",
+    store_artifact: Annotated[bool, Form()] = True,
+) -> ReportJobAccepted:
+    raw_bytes = file.file.read()
+    job = report_job_store.create_job()
+    job_id = str(job["job_id"])
+
+    def _worker() -> dict[str, object]:
+        result, layer1_report = _run_layer2_from_raw_bytes(
+            raw_bytes=raw_bytes,
+            target_column=target_column,
+            sensitive_columns=sensitive_columns,
+            task_description=task_description,
+            clarification_answers=clarification_answers,
+        )
+        if result.get("status") == "needs_clarification":
+            return result
+
+        final_report = result.get("final_report", {})
+        artifact = _build_report_artifact_response(
+            final_report=final_report,
+            layer1_report=layer1_report,
+            artifact_format=report_format,
+        )
+
+        payload: dict[str, object] = {
+            "status": "complete",
+            "final_report": final_report,
+            "report_artifact": artifact,
+        }
+        if store_artifact:
+            metadata = save_report_artifact(
+                artifact_format=str(artifact["format"]),
+                filename=str(artifact["filename"]),
+                content=str(artifact["content"]),
+            )
+            payload["stored_artifact"] = {
+                "artifact_id": metadata["artifact_id"],
+                "format": metadata["format"],
+                "filename": metadata["filename"],
+                "media_type": metadata["media_type"],
+                "created_at_utc": metadata["created_at_utc"],
+                "expires_at_utc": metadata["expires_at_utc"],
+            }
+        return payload
+
+    start_report_job(job_id, _worker)
+    return job
+
+
+@router.get("/analyze-task-report-jobs/{job_id}", response_model=ReportJobStatus)
+def get_report_job_status(job_id: str) -> ReportJobStatus:
+    job = report_job_store.get_job(job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail=f"Job '{job_id}' not found")
+    return job

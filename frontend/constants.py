@@ -1,0 +1,8 @@
+from __future__ import annotations
+
+import os
+
+DEFAULT_API_BASE_URL = os.getenv("AUDITLENS_API_BASE_URL", "http://127.0.0.1:8000")
+ASYNC_ROW_THRESHOLD = 50_000
+REQUEST_TIMEOUT_SECONDS = 300
+POLL_INTERVAL_SECONDS = 3

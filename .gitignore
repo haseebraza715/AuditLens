@@ -3,3 +3,5 @@ __pycache__/
 .pytest_cache/
 .DS_Store
 AGENT.MD
+.env
+.auditlens_artifacts/

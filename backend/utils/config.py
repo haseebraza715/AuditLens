@@ -22,7 +22,7 @@ SEVERITY_ORDER = {"high": 0, "medium": 1, "low": 2}
 
 @dataclass(frozen=True)
 class Layer2Settings:
-    provider: Literal["openai", "groq"]
+    provider: Literal["openai", "groq", "openrouter"]
     api_key: str
     model: str
     base_url: str
@@ -60,7 +60,13 @@ def _provider_settings(provider: str) -> tuple[str, str, str]:
             os.getenv("GROQ_MODEL", "llama-3.1-70b-versatile").strip(),
             os.getenv("GROQ_BASE_URL", "https://api.groq.com/openai/v1").strip(),
         )
-    raise Layer2ConfigurationError("LAYER2_PROVIDER must be one of: openai, groq")
+    if provider == "openrouter":
+        return (
+            os.getenv("OPENROUTER_API_KEY", "").strip(),
+            os.getenv("OPENROUTER_MODEL", "google/gemma-4-31b-it:free").strip(),
+            os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1").strip(),
+        )
+    raise Layer2ConfigurationError("LAYER2_PROVIDER must be one of: openai, groq, openrouter")
 
 
 @lru_cache(maxsize=1)
@@ -69,7 +75,11 @@ def get_layer2_settings() -> Layer2Settings:
     api_key, model, base_url = _provider_settings(provider)
 
     if not api_key:
-        env_name = "OPENAI_API_KEY" if provider == "openai" else "GROQ_API_KEY"
+        env_name = {
+            "openai": "OPENAI_API_KEY",
+            "groq": "GROQ_API_KEY",
+            "openrouter": "OPENROUTER_API_KEY",
+        }.get(provider, "API_KEY")
         raise Layer2ConfigurationError(
             f"{env_name} is required when LAYER2_PROVIDER={provider}"
         )

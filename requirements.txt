@@ -1,5 +1,7 @@
 fastapi
 uvicorn
+streamlit>=1.28.0
+requests
 pandas
 scipy
 scikit-learn

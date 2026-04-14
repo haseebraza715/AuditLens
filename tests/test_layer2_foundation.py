@@ -55,6 +55,20 @@ def test_layer2_config_parsing_openai(monkeypatch) -> None:
     assert settings.max_retries == 1
 
 
+def test_layer2_config_parsing_openrouter(monkeypatch) -> None:
+    monkeypatch.setenv("LAYER2_PROVIDER", "openrouter")
+    monkeypatch.setenv("OPENROUTER_API_KEY", "or-test-key")
+    monkeypatch.setenv("OPENROUTER_MODEL", "google/gemma-4-31b-it:free")
+    monkeypatch.setenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
+    clear_layer2_settings_cache()
+
+    settings = get_layer2_settings()
+    assert settings.provider == "openrouter"
+    assert settings.api_key == "or-test-key"
+    assert settings.model == "google/gemma-4-31b-it:free"
+    assert settings.base_url == "https://openrouter.ai/api/v1"
+
+
 def test_analyze_task_requires_task_description(monkeypatch) -> None:
     monkeypatch.setenv("LAYER2_PROVIDER", "openai")
     monkeypatch.setenv("OPENAI_API_KEY", "test-key")

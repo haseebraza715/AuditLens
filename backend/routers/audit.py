@@ -37,6 +37,65 @@ from backend.utils.schema import (
 router = APIRouter()
 
 
+def _build_layer1_only_response(
+    *,
+    layer1_report: dict[str, object],
+    task_description: str,
+    failure_reason: str,
+    provider: str,
+    model: str,
+) -> dict[str, object]:
+    issues = list(layer1_report.get("issues", []))
+    transformed_issues: list[dict[str, object]] = []
+    for item in issues:
+        statistical_issue = item if isinstance(item, dict) else {}
+        transformed_issues.append(
+            {
+                "statistical_issue": statistical_issue,
+                "interpretation": {
+                    "issue_id": str(statistical_issue.get("issue_id", "unknown")),
+                    "why_harmful": "Layer 2 interpretation is unavailable. Review this statistical finding manually.",
+                    "at_risk_groups": [],
+                    "likely_model_impact": "Potential fairness risk requires manual review.",
+                    "severity_delta": "equal",
+                    "severity_rationale": "Severity preserved from deterministic Layer 1 checks.",
+                },
+                "mitigations": [],
+            }
+        )
+
+    return {
+        "status": "complete",
+        "final_report": {
+            "task_description": task_description,
+            "task_context": {
+                "task_type": "unknown",
+                "positive_class_meaning": "",
+                "affected_population": "",
+                "false_positive_consequence": "",
+                "false_negative_consequence": "",
+                "decision_impact": "",
+                "stakes_level": "unknown",
+                "confidence": 0.0,
+                "assumptions": [f"Layer 2 unavailable: {failure_reason}"],
+            },
+            "issues": transformed_issues,
+            "summary": (
+                "Layer 1 statistical checks completed; "
+                f"Layer 2 interpretation unavailable ({failure_reason})."
+            ),
+            "disclaimer": "This report is based on deterministic Layer 1 checks only.",
+            "reproducibility": {
+                "generated_at_utc": "",
+                "request_id": "",
+                "layer2_provider": provider or "unavailable",
+                "layer2_model": model or "unavailable",
+                "severity_thresholds": {},
+            },
+        },
+    }
+
+
 def _normalize_sensitive_columns(raw_values: list[str]) -> list[str]:
     normalized: list[str] = []
     for raw in raw_values:
@@ -83,6 +142,7 @@ def _run_layer2_from_form(
     sensitive_columns: list[str],
     task_description: str,
     clarification_answers: Optional[str],
+    allow_provider_fallback: bool = False,
 ) -> tuple[dict[str, object], dict[str, object]]:
     raw_bytes = file.file.read()
     df = _read_csv_from_bytes(raw_bytes)
@@ -135,9 +195,25 @@ def _run_layer2_from_form(
     except Layer2ConfigurationError as exc:
         raise HTTPException(status_code=503, detail=str(exc))
     except Layer2InvalidResponseError as exc:
-        raise HTTPException(status_code=502, detail=str(exc))
+        if not allow_provider_fallback:
+            raise HTTPException(status_code=502, detail=str(exc))
+        result = _build_layer1_only_response(
+            layer1_report=layer1_report,
+            task_description=task_description.strip(),
+            failure_reason=str(exc),
+            provider=settings.provider,
+            model=settings.model,
+        )
     except Layer2ProviderError as exc:
-        raise HTTPException(status_code=502, detail=str(exc))
+        if not allow_provider_fallback:
+            raise HTTPException(status_code=502, detail=str(exc))
+        result = _build_layer1_only_response(
+            layer1_report=layer1_report,
+            task_description=task_description.strip(),
+            failure_reason=str(exc),
+            provider=settings.provider,
+            model=settings.model,
+        )
 
     return result, layer1_report
 
@@ -149,6 +225,7 @@ def _run_layer2_from_raw_bytes(
     sensitive_columns: list[str],
     task_description: str,
     clarification_answers: Optional[str],
+    allow_provider_fallback: bool = False,
 ) -> tuple[dict[str, object], dict[str, object]]:
     df = _read_csv_from_bytes(raw_bytes)
 
@@ -199,9 +276,25 @@ def _run_layer2_from_raw_bytes(
     except Layer2ConfigurationError as exc:
         raise HTTPException(status_code=503, detail=str(exc))
     except Layer2InvalidResponseError as exc:
-        raise HTTPException(status_code=502, detail=str(exc))
+        if not allow_provider_fallback:
+            raise HTTPException(status_code=502, detail=str(exc))
+        result = _build_layer1_only_response(
+            layer1_report=layer1_report,
+            task_description=task_description.strip(),
+            failure_reason=str(exc),
+            provider=settings.provider,
+            model=settings.model,
+        )
     except Layer2ProviderError as exc:
-        raise HTTPException(status_code=502, detail=str(exc))
+        if not allow_provider_fallback:
+            raise HTTPException(status_code=502, detail=str(exc))
+        result = _build_layer1_only_response(
+            layer1_report=layer1_report,
+            task_description=task_description.strip(),
+            failure_reason=str(exc),
+            provider=settings.provider,
+            model=settings.model,
+        )
 
     return result, layer1_report
 
@@ -288,6 +381,7 @@ def analyze_task(
         sensitive_columns=sensitive_columns,
         task_description=task_description,
         clarification_answers=clarification_answers,
+        allow_provider_fallback=False,
     )
 
     return result  # type: ignore[return-value]
@@ -307,6 +401,7 @@ def analyze_task_report(
         sensitive_columns=sensitive_columns,
         task_description=task_description,
         clarification_answers=clarification_answers,
+        allow_provider_fallback=True,
     )
 
     if result.get("status") == "needs_clarification":
@@ -340,6 +435,7 @@ def analyze_task_report_pdf(
         sensitive_columns=sensitive_columns,
         task_description=task_description,
         clarification_answers=clarification_answers,
+        allow_provider_fallback=True,
     )
     if result.get("status") == "needs_clarification":
         return result  # type: ignore[return-value]
@@ -454,6 +550,7 @@ def create_report_job(
             sensitive_columns=sensitive_columns,
             task_description=task_description,
             clarification_answers=clarification_answers,
+            allow_provider_fallback=True,
         )
         if result.get("status") == "needs_clarification":
             return result

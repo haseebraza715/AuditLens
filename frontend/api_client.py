@@ -41,6 +41,10 @@ def _friendly_error_message(status_code: int, detail: str) -> str:
         return "Could not read this file. Make sure it is a valid CSV."
     if status_code == 503:
         return "Interpretation service unavailable. Check your API key in settings."
+    if status_code == 502:
+        if "provider" in lower or "model" in lower or "layer 2" in lower:
+            return "Interpretation provider request failed. Check Layer 2 API credentials/model config."
+        return "Backend failed while generating task interpretation. Try again or use Layer 1-only analysis."
     if status_code in (408, 504):
         return "The audit is taking longer than expected. Try a smaller dataset or use async mode."
     return detail or f"Request failed with status {status_code}."

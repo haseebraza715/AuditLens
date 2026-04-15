@@ -103,6 +103,78 @@ def fallback_to_markdown(form_fields: list[tuple[str, tuple[Any, Any]]]) -> dict
     return post_form("/analyze-task-report", form_fields)
 
 
+def build_layer1_only_response(layer1_report: dict[str, Any], failure_reason: str) -> dict[str, Any]:
+    layer1_issues = list(layer1_report.get("issues", []))
+    converted_issues: list[dict[str, Any]] = []
+    for issue in layer1_issues:
+        statistical_issue = issue if isinstance(issue, dict) else {}
+        converted_issues.append(
+            {
+                "statistical_issue": statistical_issue,
+                "interpretation": {
+                    "issue_id": str(statistical_issue.get("issue_id", "unknown")),
+                    "why_harmful": "Layer 2 interpretation is unavailable. Review this statistical finding manually.",
+                    "at_risk_groups": [],
+                    "likely_model_impact": "Potential fairness risk requires manual review.",
+                    "severity_delta": "equal",
+                    "severity_rationale": "Severity preserved from deterministic Layer 1 checks.",
+                },
+                "mitigations": [],
+            }
+        )
+
+    markdown_lines = [
+        "# AuditLens Report (Layer 1 Only)",
+        "",
+        "Layer 2 interpretation is currently unavailable.",
+        f"Failure reason: {failure_reason}",
+        "",
+        "## Findings",
+    ]
+    if not converted_issues:
+        markdown_lines.append("- No Layer 1 issues detected.")
+    else:
+        for item in converted_issues:
+            statistical = item["statistical_issue"]
+            issue_type = str(statistical.get("type", "dataset_issue")).replace("_", " ").title()
+            severity = str(statistical.get("severity", "low")).upper()
+            description = str(statistical.get("description", "")).strip()
+            markdown_lines.append(f"- [{severity}] {issue_type}: {description}")
+
+    return {
+        "status": "complete",
+        "final_report": {
+            "task_description": st.session_state.task_description,
+            "task_context": {
+                "task_type": "unknown",
+                "positive_class_meaning": "",
+                "affected_population": "",
+                "false_positive_consequence": "",
+                "false_negative_consequence": "",
+                "decision_impact": "",
+                "stakes_level": "unknown",
+                "confidence": 0.0,
+                "assumptions": ["Layer 2 interpretation unavailable"],
+            },
+            "issues": converted_issues,
+            "summary": "Layer 1 statistical checks completed; Layer 2 interpretation unavailable.",
+            "disclaimer": "This report is based on deterministic Layer 1 checks only.",
+            "reproducibility": {
+                "generated_at_utc": "",
+                "request_id": "",
+                "layer2_provider": "unavailable",
+                "layer2_model": "unavailable",
+                "severity_thresholds": {},
+            },
+        },
+        "report_artifact": {
+            "format": "markdown",
+            "filename": "auditlens_report_layer1_only.md",
+            "content": "\n".join(markdown_lines),
+        },
+    }
+
+
 def submit_sync_audit(clarification_answers: dict[str, Any] | None = None) -> None:
     form = build_analysis_form(
         file_name=st.session_state.file_name,
@@ -118,7 +190,24 @@ def submit_sync_audit(clarification_answers: dict[str, Any] | None = None) -> No
     except ApiError as exc:
         if exc.status_code and exc.status_code >= 500:
             st.warning("PDF generation failed; retrying with Markdown endpoint.")
-            response = fallback_to_markdown(form)
+            try:
+                response = fallback_to_markdown(form)
+            except ApiError as fallback_exc:
+                if fallback_exc.status_code and fallback_exc.status_code >= 500:
+                    fetch_layer1_report()
+                    if isinstance(st.session_state.layer1_report, dict):
+                        st.warning(
+                            "Layer 2 is unavailable. Showing Layer 1-only report so you can continue."
+                        )
+                        st.caption(f"Layer 2 failure detail: {fallback_exc}")
+                        response = build_layer1_only_response(
+                            st.session_state.layer1_report,
+                            str(fallback_exc),
+                        )
+                    else:
+                        raise fallback_exc
+                else:
+                    raise fallback_exc
         else:
             raise
 

@@ -4,10 +4,17 @@ from typing import Any
 
 import streamlit as st
 
-from backend.layer3.visualizations import build_fairness_overview_chart
+from backend.layer3 import visualizations as viz
 from frontend.charts import render_inline_charts
 from frontend.downloads import render_downloads
 from frontend.styles import SEVERITY_COLORS
+
+
+def _build_fairness_overview(layer1_report: dict[str, Any]) -> bytes:
+    builder = getattr(viz, "build_fairness_overview_chart", None)
+    if callable(builder):
+        return builder(layer1_report)
+    return viz.build_issue_type_chart({"issues": []})
 
 
 def _severity_rank(severity: str, high_first: bool = True) -> int:
@@ -181,7 +188,7 @@ def render_final_report_section() -> None:
                 f"target: {dataset_info.get('target_column', 'unknown')}"
             )
             st.image(
-                build_fairness_overview_chart(layer1_report),
+                _build_fairness_overview(layer1_report),
                 caption="Fairness overview across parity gaps and correlations",
                 use_container_width=True,
             )

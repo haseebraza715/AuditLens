@@ -219,11 +219,11 @@ def build_fairness_overview_chart(layer1_report: dict[str, Any] | None) -> bytes
         severity = str(issue.get("severity", "low")).lower()
         metrics = issue.get("metrics", {}) or {}
         if issue_type == "demographic_parity_gap":
-            labels.append(f"{issue_type}:{metrics.get('sensitive_column', 'group')}")
+            labels.append(f"DP gap - {metrics.get('sensitive_column', 'group')}")
             values.append(float(metrics.get("demographic_parity_gap", 0.0) or 0.0))
             severities.append(severity)
         elif issue_type == "sensitive_correlation":
-            labels.append(f"{issue_type}:{metrics.get('sensitive_column', 'group')}")
+            labels.append(f"Correlation - {metrics.get('sensitive_column', 'group')}")
             values.append(float(metrics.get("absolute_correlation", 0.0) or 0.0))
             severities.append(severity)
 
@@ -234,7 +234,17 @@ def build_fairness_overview_chart(layer1_report: dict[str, Any] | None) -> bytes
 
     chart_colors = [_SEVERITY_COLORS.get(level, _SEVERITY_COLORS["low"]) for level in severities]
 
-    fig, ax = plt.subplots(figsize=(max(7.0, 0.4 * len(labels)), 3.2))
+    ranked_items = sorted(
+        zip(labels, values, severities),
+        key=lambda item: item[1],
+        reverse=True,
+    )
+    labels = [item[0] for item in ranked_items]
+    values = [item[1] for item in ranked_items]
+    severities = [item[2] for item in ranked_items]
+    chart_colors = [_SEVERITY_COLORS.get(level, _SEVERITY_COLORS["low"]) for level in severities]
+
+    fig, ax = plt.subplots(figsize=(max(7.0, 0.45 * len(labels)), 3.4))
     y_pos = np.arange(len(labels))
     bars = ax.barh(y_pos, values, color=chart_colors)
     ax.set_yticks(y_pos, labels)

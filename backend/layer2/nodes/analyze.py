@@ -73,7 +73,7 @@ def _needs_clarification(task_context: dict[str, Any]) -> bool:
 
 def analyze_node(state: AuditState) -> AuditState:
     task_description = state.get("task_description", "")
-    prompt = ANALYZE_PROMPT_TEMPLATE.format(task_description=task_description)
+    prompt = ANALYZE_PROMPT_TEMPLATE.replace("{task_description}", str(task_description))
     clarification_answers = state.get("clarification_answers", {}) or {}
 
     client = state.get("llm_client")

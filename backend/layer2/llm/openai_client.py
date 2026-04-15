@@ -57,4 +57,5 @@ class OpenAICompatibleClient(BaseLLMClient):
             except Layer2ProviderError:
                 raise
             except Exception as exc:  # pragma: no cover - external provider behavior
-                raise Layer2ProviderError("LLM provider request failed") from exc
+                detail = str(exc).strip() or exc.__class__.__name__
+                raise Layer2ProviderError(f"LLM provider request failed: {detail}") from exc

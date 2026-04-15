@@ -64,10 +64,10 @@ def _normalize_mitigation(item: dict[str, Any]) -> dict[str, str]:
     return {
         "title": shorten_text(str(item.get("title", "Mitigation option")), limit=120),
         "category": category,
-        "when_to_use": shorten_text(str(item.get("when_to_use", "")), limit=280),
-        "tradeoffs": shorten_text(str(item.get("tradeoffs", "")), limit=280),
+        "when_to_use": shorten_text(str(item.get("when_to_use", "")), limit=500),
+        "tradeoffs": shorten_text(str(item.get("tradeoffs", "")), limit=500),
         "difficulty": difficulty,
-        "expected_impact": shorten_text(str(item.get("expected_impact", "")), limit=280),
+        "expected_impact": shorten_text(str(item.get("expected_impact", "")), limit=500),
         "code_snippet": str(item.get("code_snippet", "")).strip(),
     }
 
@@ -107,9 +107,14 @@ def recommend_node(state: AuditState) -> AuditState:
     parsed_issues = list(state.get("parsed_issues", []))
 
     for issue, interpretation in zip(parsed_issues, interpretations):
-        prompt = RECOMMEND_PROMPT_TEMPLATE.format(
-            task_context=json.dumps(task_context, ensure_ascii=True),
-            interpretation=json.dumps(interpretation, ensure_ascii=True),
+        prompt = (
+            RECOMMEND_PROMPT_TEMPLATE.replace(
+                "{task_context}",
+                json.dumps(task_context, ensure_ascii=True),
+            ).replace(
+                "{interpretation}",
+                json.dumps(interpretation, ensure_ascii=True),
+            )
         )
         normalized: list[dict[str, str]] = []
         try:

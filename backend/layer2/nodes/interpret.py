@@ -39,27 +39,27 @@ def _normalize_interpretation(
     interpretation["issue_id"] = str(interpretation.get("issue_id") or issue.get("issue_id", "unknown"))
     interpretation["why_harmful"] = shorten_text(
         str(interpretation.get("why_harmful") or _fallback_interpretation(issue)["why_harmful"]),
-        limit=700,
+        limit=1500,
     )
     interpretation["likely_model_impact"] = shorten_text(
         str(
             interpretation.get("likely_model_impact")
             or _fallback_interpretation(issue)["likely_model_impact"]
         ),
-        limit=700,
+        limit=1200,
     )
     interpretation["severity_rationale"] = shorten_text(
         str(
             interpretation.get("severity_rationale")
             or _fallback_interpretation(issue)["severity_rationale"]
         ),
-        limit=400,
+        limit=600,
     )
 
     at_risk = interpretation.get("at_risk_groups", [])
     if not isinstance(at_risk, list):
         at_risk = [str(at_risk)]
-    interpretation["at_risk_groups"] = [shorten_text(str(group), limit=100) for group in at_risk if str(group)]
+    interpretation["at_risk_groups"] = [shorten_text(str(group), limit=150) for group in at_risk if str(group)]
 
     severity_delta = str(interpretation.get("severity_delta", "equal")).lower()
     if severity_delta not in {"higher", "equal", "lower"}:
@@ -81,9 +81,14 @@ def interpret_node(state: AuditState) -> AuditState:
 
     interpretations: list[dict[str, Any]] = []
     for issue in state.get("parsed_issues", []):
-        prompt = INTERPRET_PROMPT_TEMPLATE.format(
-            task_context=json.dumps(task_context, ensure_ascii=True),
-            issue=json.dumps(issue, ensure_ascii=True),
+        prompt = (
+            INTERPRET_PROMPT_TEMPLATE.replace(
+                "{task_context}",
+                json.dumps(task_context, ensure_ascii=True),
+            ).replace(
+                "{issue}",
+                json.dumps(issue, ensure_ascii=True),
+            )
         )
         try:
             payload = parse_json_with_retries(client=client, prompt=prompt, max_retries=max_retries)

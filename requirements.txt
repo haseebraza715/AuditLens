@@ -16,3 +16,4 @@ langchain-openai
 openai
 matplotlib
 reportlab
+python-dotenv

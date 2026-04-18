@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import html
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
@@ -91,6 +92,61 @@ class AuditLensReport:
         if not self._interpretation or self._interpretation.get("status") != "needs_clarification":
             return None
         return list(self._interpretation.get("clarifying_questions", []))
+
+    def __repr__(self) -> str:
+        s = self.summary
+        return (
+            f"AuditLensReport(status={self.status!r}, "
+            f"issues={len(self.issues)}, "
+            f"high={s.get('high_severity', 0)}, medium={s.get('medium_severity', 0)}, low={s.get('low_severity', 0)})"
+        )
+
+    def _repr_html_(self) -> str:
+        """Rich display in Jupyter: compact table of Layer 1 findings."""
+        rows: list[str] = []
+        for issue in self.issues[:50]:
+            desc = (issue.description or "")[:120]
+            rows.append(
+                "<tr>"
+                f"<td><code>{html.escape(str(issue.type))}</code></td>"
+                f"<td><b>{html.escape(str(issue.severity))}</b></td>"
+                f"<td>{html.escape(desc)}</td>"
+                "</tr>"
+            )
+        if not rows:
+            rows.append("<tr><td colspan='3'><i>No issues detected by Layer 1.</i></td></tr>")
+        more = ""
+        if len(self.issues) > 50:
+            more = f"<p><i>Showing 50 of {len(self.issues)} issues.</i></p>"
+        s = self.summary
+        header = (
+            "<div><b>AuditLensReport</b> "
+            f"<code>status={html.escape(repr(self.status))}</code> "
+            f"— total {s.get('total_issues', 0)} "
+            f"(high {s.get('high_severity', 0)}, medium {s.get('medium_severity', 0)}, low {s.get('low_severity', 0)})"
+            "</div>"
+        )
+        table = (
+            "<table border='1' cellpadding='6' cellspacing='0' style='border-collapse:collapse;font-size:13px'>"
+            "<thead><tr><th>Type</th><th>Severity</th><th>Description (truncated)</th></tr></thead>"
+            f"<tbody>{''.join(rows)}</tbody></table>"
+        )
+        return header + table + more
+
+    def to_dict(self) -> dict[str, Any]:
+        """JSON-friendly snapshot (e.g. for logging or custom serializers)."""
+        payload: dict[str, Any] = {
+            "status": self.status,
+            "summary": dict(self.summary),
+            "issues": [issue.model_dump(mode="python") for issue in self.issues],
+            "clarifying_questions": self.clarifying_questions,
+            "final_report": self.final_report.model_dump(mode="json") if self.final_report else None,
+            "layer1_report": _layer1_payload_for_models(self._layer1_report),
+        }
+        thresholds = self._layer1_report.get("severity_thresholds")
+        if thresholds is not None:
+            payload["severity_thresholds"] = thresholds
+        return payload
 
     def to_markdown(self, *, generated_at_utc: datetime | None = None) -> str:
         if self._interpretation and self._interpretation.get("status") == "complete":

@@ -211,6 +211,7 @@ assert "langgraph" not in sys.modules
 # --- Packaging ---
 
 
+@pytest.mark.slow
 def test_project_builds_wheel_and_sdist() -> None:
     dist_dir = REPO_ROOT / "dist"
     try:
@@ -247,6 +248,7 @@ def test_project_builds_wheel_and_sdist() -> None:
             shutil.rmtree(dist_dir, ignore_errors=True)
 
 
+@pytest.mark.slow
 def test_twine_check_passes_on_built_artifacts() -> None:
     dist_dir = REPO_ROOT / "dist"
     import shutil

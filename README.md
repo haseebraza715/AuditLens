@@ -44,6 +44,7 @@ In **Jupyter**, put `report` on the last line of a cell to render an **HTML tabl
 | `ui` | Streamlit app (pulls in `server`) |
 | `all` | All of the above |
 | `dev` | pytest, httpx, and extras needed for the test suite |
+| `e2e` | Microsoft Playwright (request API only) for HTTP e2e tests in `tests/e2e/` |
 
 ## Configuration (Layer 2 providers)
 
@@ -117,7 +118,7 @@ The repo includes GitHub Actions workflows under **`.github/workflows/`**:
 
 | File | Purpose |
 | --- | --- |
-| [`ci.yml`](.github/workflows/ci.yml) | Runs tests on Python 3.9 / 3.11 / 3.12 on every push and PR to `main`. |
+| [`ci.yml`](.github/workflows/ci.yml) | Matrix: fast tests (`pytest -m "not slow and not e2e"`) on Python 3.9 / 3.11 / 3.12. Separate job runs **slow** packaging checks and **Playwright** HTTP e2e against a live uvicorn server. |
 | [`publish-pypi.yml`](.github/workflows/publish-pypi.yml) | Builds and publishes to PyPI using **Trusted Publishing** (OIDC — no long-lived PyPI token in GitHub secrets). |
 
 #### Trusted Publishing (recommended)
@@ -153,6 +154,16 @@ python3 -m twine upload dist/*
 
 ```bash
 python3 -m pip install -e ".[dev]"
+python3 -m pytest tests/
+```
+
+Fast suite (matches CI matrix): `pytest tests/ -m "not slow and not e2e"`.
+
+Full suite including packaging smoke and live-server Playwright checks:
+
+```bash
+python3 -m pip install -e ".[dev,e2e]"
+python3 -m playwright install chromium
 python3 -m pytest tests/
 ```
 

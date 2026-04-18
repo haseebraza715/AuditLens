@@ -68,6 +68,7 @@ dev = [
     "auditlens[viz]",
     "auditlens[server]",
 ]
+e2e = ["playwright>=1.40,<2.0"]
 all = [
     "auditlens[openai]",
     "auditlens[pdf]",
@@ -88,3 +89,7 @@ where = ["src", "server", "ui"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src", "server", "ui"]
+markers = [
+    "slow: packaging/subprocess checks (excluded from default CI matrix)",
+    "e2e: Playwright HTTP checks against a live uvicorn server (e2e CI job)",
+]

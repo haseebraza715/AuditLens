@@ -29,8 +29,28 @@ jobs:
       - name: Install package (dev extras)
         run: python -m pip install -U pip && pip install -e ".[dev]"
 
-      - name: Run tests
-        run: pytest tests/ -q --tb=short
+      - name: Run tests (fast suite)
+        run: pytest tests/ -m "not slow and not e2e" -q --tb=short
 
       - name: Import smoke test
         run: python -c "from auditlens import audit; print('import ok')"
+
+  e2e-and-slow:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install package (dev + e2e)
+        run: python -m pip install -U pip && pip install -e ".[dev,e2e]"
+
+      - name: Install Playwright browser (Chromium only)
+        run: python -m playwright install --with-deps chromium
+
+      - name: Run slow packaging tests and Playwright e2e
+        run: pytest tests/ -m "slow or e2e" -q --tb=short

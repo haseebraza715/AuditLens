@@ -5,6 +5,13 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Pytest markers `slow` and `e2e`; CI matrix runs the fast suite while a dedicated job runs packaging (`slow`) and Playwright API checks against uvicorn (`e2e`).
+- Optional extra `[e2e]` (Playwright) and `tests/e2e/` for live-server HTTP verification; e2e paths are ignored when Playwright is not installed.
+
 ## [0.1.0] - 2026-04-18
 
 ### Added

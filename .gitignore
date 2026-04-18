@@ -1,7 +1,10 @@
 .venv/
+*.egg-info/
 __pycache__/
 .pytest_cache/
+.pycache_tmp/
 .DS_Store
 AGENT.MD
 .env
 .auditlens_artifacts/
+compas-scores-two-years.csv

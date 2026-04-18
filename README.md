@@ -25,6 +25,8 @@ print(len(report.issues))   # structured AuditIssue list
 print(report.to_markdown()[:500])
 ```
 
+In **Jupyter**, put `report` on the last line of a cell to render an **HTML table** (`_repr_html_()`). In any REPL, `repr(report)` is a short one-line summary, and `report.to_dict()` returns a JSON-friendly snapshot.
+
 - **Layer 1 only (default install):** omit `task_description` or pass `None`. You still get `summary`, `issues`, and a short Layer 1 markdown report from `to_markdown()`.
 - **Layer 2:** set a non-empty `task_description` and install an LLM extra (for example `pip install -e ".[openai]"`), configure provider env vars, or pass a `BaseLLMClient` instance as `llm_client` (see `examples/custom_llm_client.py`).
 - **PDF:** `report.to_pdf("report.pdf")` requires `pip install -e ".[pdf]"` (includes ReportLab and matplotlib for charts).
@@ -94,12 +96,27 @@ python3 -m streamlit run ui/auditlens_ui/app.py
 
 Or use `./run-dev.sh` after installing `.[ui]` into `.venv`.
 
+## Documentation layout
+
+- **[`docs/next-phase-roadmap.md`](docs/next-phase-roadmap.md)** — phased adoption plan (CI, CLI, MCP, PyPI, etc.).
+- **[`examples/notebook_quickstart.ipynb`](examples/notebook_quickstart.ipynb)** — short COMPAS tutorial (run top-to-bottom in a clean kernel).
+- **[`docs/internal/`](docs/internal/)** — archived planning notes (MVP plan, layer phase write-ups).
+
+### PyPI package name
+
+`python3 -m pip index versions auditlens` currently reports **no published distributions**, so the **`auditlens`** name appears **available** before a first release. Re-check immediately before publishing.
+
 ## Development
 
 ```bash
 python3 -m pip install -e ".[dev]"
 python3 -m pytest tests/
 ```
+
+### Phase 1 release checklist (manual)
+
+1. Clean venv: `python3 -m venv .venv && source .venv/bin/activate && pip install -e . && pytest tests/ -q`
+2. Commit and **push to `main`** so GitHub shows the `src/auditlens/` layout.
 
 See `examples/notebook_quickstart.ipynb` for a notebook-oriented walkthrough.
 

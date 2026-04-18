@@ -4,6 +4,7 @@ Planning notes and phase write-ups that lived under `docs/` have been moved here
 
 | Path | Contents |
 |------|----------|
+| `AGENT.md` | Contributor / agent working notes (optional) |
 | `bias_audit_mvp_plan.md` | Original MVP plan |
 | `main-idea.md` | Product / architecture notes |
 | `ui-plan.md` | Streamlit UI planning |

@@ -155,3 +155,5 @@ See `examples/notebook_quickstart.ipynb` for a notebook-oriented walkthrough.
 - `server/auditlens_server/` — FastAPI app (optional extra)
 - `ui/auditlens_ui/` — Streamlit UI (optional extra)
 - `tests/` — unit, integration, and smoke tests by area
+
+**What `pip install auditlens` ships:** only the Python packages discovered under `src/`, `server/`, and `ui/` (see `pyproject.toml`). Tests, notebooks, and markdown docs stay in the **GitHub** repo for developers; they are not bundled into the wheel unless you add them explicitly.

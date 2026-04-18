@@ -80,7 +80,7 @@ all = [
 Homepage = "https://github.com/haseebraza715/AuditLens"
 Repository = "https://github.com/haseebraza715/AuditLens"
 Documentation = "https://github.com/haseebraza715/AuditLens#readme"
-Changelog = "https://github.com/haseebraza715/AuditLens/releases"
+Changelog = "https://github.com/haseebraza715/AuditLens/blob/main/CHANGELOG.md"
 
 [tool.setuptools.packages.find]
 where = ["src", "server", "ui"]

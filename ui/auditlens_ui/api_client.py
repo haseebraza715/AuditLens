@@ -62,7 +62,7 @@ def post_form(
             "The audit is taking longer than expected. Try a smaller dataset or use async mode."
         ) from exc
     except requests.RequestException as exc:
-        raise ApiError(f"Could not reach backend API: {exc}") from exc
+        raise ApiError(f"Could not reach API server: {exc}") from exc
 
     if not response.ok:
         detail = _extract_error_detail(response)
@@ -86,7 +86,7 @@ def get_json(path: str, timeout: int = REQUEST_TIMEOUT_SECONDS) -> dict[str, Any
     except requests.Timeout as exc:
         raise ApiError("Request timed out while polling report job.") from exc
     except requests.RequestException as exc:
-        raise ApiError(f"Could not reach backend API: {exc}") from exc
+        raise ApiError(f"Could not reach API server: {exc}") from exc
 
     if not response.ok:
         detail = _extract_error_detail(response)

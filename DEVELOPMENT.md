@@ -1,64 +1,42 @@
 # Development Guide
 
-## Run in Development Mode
+## Environment
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-.venv/bin/python -m pip install -r requirements.txt
+python3 -m pip install -e ".[dev]"
 ```
 
-Terminal 1 (backend):
+## Run API + Streamlit locally
+
+Terminal 1 (FastAPI):
 
 ```bash
-.venv/bin/python -m uvicorn backend.main:app --reload --env-file .env
+python3 -m uvicorn auditlens_server.app:app --reload --env-file .env
 ```
 
-Terminal 2 (frontend):
+Terminal 2 (Streamlit):
 
 ```bash
-.venv/bin/python -m streamlit run frontend/app.py
+python3 -m streamlit run ui/auditlens_ui/app.py
 ```
 
-## Important Commands
+Or use `./run-dev.sh` after installing `.[ui]`.
 
-- Run all tests:
+## Commands
+
+- Run all tests: `python3 -m pytest tests/`
+- Quick syntax check on UI entrypoints:
 
 ```bash
-.venv/bin/python -m pytest
+python3 -m py_compile ui/auditlens_ui/app.py ui/auditlens_ui/state.py ui/auditlens_ui/api_client.py ui/auditlens_ui/workflow.py ui/auditlens_ui/ui.py ui/auditlens_ui/constants.py
 ```
 
-- Compile frontend modules quickly:
+- Single test file example: `python3 -m pytest tests/core/test_layer1.py`
 
-```bash
-.venv/bin/python -m py_compile frontend/app.py frontend/state.py frontend/api_client.py frontend/workflow.py frontend/ui.py frontend/constants.py
-```
+## Conventions
 
-- Run a single test file ([`tests/test_layer1.py`](./tests/test_layer1.py)):
-
-```bash
-.venv/bin/python -m pytest tests/test_layer1.py
-```
-
-- Run a single test case in [`tests/test_layer1.py`](./tests/test_layer1.py):
-
-```bash
-.venv/bin/python -m pytest tests/test_layer1.py::test_performance_100k_under_10_seconds
-```
-
-## Contributor Notes
-
-- Keep Layer 1 deterministic. The same input should produce the same output.
-- Add or update tests whenever analyzer behavior changes.
-- Keep severity thresholds centralized in [`backend/utils/config.py`](./backend/utils/config.py).
-- Preserve offline test reliability:
-  - use local fixtures in [`tests/fixtures/`](./tests/fixtures/)
-  - avoid introducing network dependencies in default test runs
-- If you add new layers (agent/reporting), keep boundaries clear:
-  - statistical computation in Layer 1
-  - interpretation in Layer 2
-  - presentation/reporting in Layer 3
-- Keep frontend boundaries clear:
-  - UI rendering in [`frontend/ui.py`](./frontend/ui.py)
-  - API and error handling in [`frontend/api_client.py`](./frontend/api_client.py)
-  - run orchestration in [`frontend/workflow.py`](./frontend/workflow.py)
+- Keep severity thresholds in `src/auditlens/config.py` (`SEVERITY_THRESHOLDS`).
+- Layer 1 lives under `src/auditlens/core/`; Layer 2 under `src/auditlens/interpretation/`; Layer 3 under `src/auditlens/reporting/`.
+- Public notebook-style usage goes through `auditlens.audit` (`src/auditlens/api.py`).

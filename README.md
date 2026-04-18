@@ -1,25 +1,53 @@
 # AuditLens
 
-## Overview
+AuditLens runs **deterministic statistical checks** (Layer 1) and optional **LLM-assisted interpretation** (Layer 2) on tabular datasets, then builds **shareable reports** (Layer 3). It is designed for notebooks and Python scripts: install the core library, call `audit()`, and optionally add extras for PDF charts, HTTP API, or Streamlit UI.
 
-AuditLens is a bias-audit system for tabular ML datasets with a FastAPI backend and a Streamlit frontend.
-
-Implemented layers:
-- Layer 1: deterministic statistical bias checks
-- Layer 2: task-aware interpretation and mitigation recommendations via LLM provider
-- Layer 3: report generation (Markdown + PDF), artifacts, and async report jobs
-
-## Setup
+## Quickstart (library)
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-python3 -m pip install -r requirements.txt
+python3 -m pip install -e .
 ```
 
-Create a `.env` file for Layer 2 provider settings.
+```python
+from auditlens import audit
+import pandas as pd
 
-OpenRouter example:
+df = pd.read_csv("compas-scores-two-years.csv")  # or your own CSV
+report = audit(
+    df,
+    target_col="two_year_recid",
+    sensitive_cols=["race", "sex"],
+)
+print(report.summary)       # severity counts (dict)
+print(len(report.issues))   # structured AuditIssue list
+print(report.to_markdown()[:500])
+```
+
+- **Layer 1 only (default install):** omit `task_description` or pass `None`. You still get `summary`, `issues`, and a short Layer 1 markdown report from `to_markdown()`.
+- **Layer 2:** set a non-empty `task_description` and install an LLM extra (for example `pip install -e ".[openai]"`), configure provider env vars, or pass a `BaseLLMClient` instance as `llm_client` (see `examples/custom_llm_client.py`).
+- **PDF:** `report.to_pdf("report.pdf")` requires `pip install -e ".[pdf]"` (includes ReportLab and matplotlib for charts).
+
+### Optional install extras
+
+| Extra | Purpose |
+| --- | --- |
+| *(core only)* | Layer 1, schemas, `audit()` without LLM |
+| `openai` | LangGraph + LangChain + OpenAI SDK for Layer 2 |
+| `groq` / `openrouter` | Same stack as `openai` (OpenAI-compatible clients) |
+| `pdf` | ReportLab + matplotlib for `to_pdf()` |
+| `viz` | matplotlib only (charts / `visualizations` module) |
+| `server` | FastAPI + Uvicorn HTTP API |
+| `ui` | Streamlit app (pulls in `server`) |
+| `all` | All of the above |
+| `dev` | pytest, httpx, and extras needed for the test suite |
+
+## Configuration (Layer 2 providers)
+
+With `openai` (or `server` / `ui`) installed, set provider environment variables, for example:
+
+**OpenRouter**
 
 ```env
 LAYER2_PROVIDER=openrouter
@@ -28,75 +56,56 @@ OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
 OPENROUTER_MODEL=google/gemma-4-31b-it:free
 ```
 
-Also supported:
-- `LAYER2_PROVIDER=openai` with `OPENAI_API_KEY`, `OPENAI_MODEL`, `OPENAI_BASE_URL`
-- `LAYER2_PROVIDER=groq` with `GROQ_API_KEY`, `GROQ_MODEL`, `GROQ_BASE_URL`
+**OpenAI**
 
-## Run Locally
+```env
+LAYER2_PROVIDER=openai
+OPENAI_API_KEY=your_key
+OPENAI_MODEL=gpt-4o-mini
+OPENAI_BASE_URL=https://api.openai.com/v1
+```
 
-Terminal 1 (backend):
+**Groq**
+
+```env
+LAYER2_PROVIDER=groq
+GROQ_API_KEY=your_key
+GROQ_MODEL=llama-3.1-70b-versatile
+GROQ_BASE_URL=https://api.groq.com/openai/v1
+```
+
+Optional tuning: `LAYER2_TIMEOUT_SECONDS`, `LAYER2_MAX_RETRIES`, `LAYER2_MAX_TASK_DESCRIPTION_CHARS`.
+
+## Optional HTTP API (`server` extra)
 
 ```bash
-python3 -m uvicorn backend.main:app --reload --env-file .env
+python3 -m pip install -e ".[server]"
+python3 -m uvicorn auditlens_server.app:app --reload --env-file .env
 ```
 
-Terminal 2 (frontend):
+Endpoints include `POST /upload`, `POST /analyze`, `POST /analyze-task`, report routes, and async jobs (unchanged from the previous FastAPI app).
+
+## Optional Streamlit UI (`ui` extra)
 
 ```bash
-python3 -m streamlit run frontend/app.py
+python3 -m pip install -e ".[ui]"
+python3 -m streamlit run ui/auditlens_ui/app.py
 ```
 
-Run tests:
+Or use `./run-dev.sh` after installing `.[ui]` into `.venv`.
+
+## Development
 
 ```bash
-python3 -m pytest
+python3 -m pip install -e ".[dev]"
+python3 -m pytest tests/
 ```
 
-## Usage
+See `examples/notebook_quickstart.ipynb` for a notebook-oriented walkthrough.
 
-### Streamlit UI
+## Layout
 
-1. Upload a CSV file.
-2. Select target and sensitive columns.
-3. Enter task description.
-4. Run audit.
-5. If prompted, answer clarification questions.
-6. Download PDF or Markdown report.
-
-### API Endpoints
-
-- `POST /upload`: validate CSV and return columns/shape preview
-- `POST /analyze`: run Layer 1 only
-- `POST /analyze-task`: run Layer 1 + Layer 2
-- `POST /analyze-task-report`: return complete report + Markdown artifact
-- `POST /analyze-task-report-pdf`: return complete report + PDF artifact (base64)
-- `POST /analyze-task-report-store`: persist report artifact metadata
-- `POST /analyze-task-report-jobs`: queue async report generation job
-- `GET /analyze-task-report-jobs/{job_id}`: poll async job status/result
-- `GET /reports/{artifact_id}`: artifact metadata
-- `GET /reports/{artifact_id}/download`: artifact file download
-
-### Python Layer 1 Entrypoint
-
-```python
-import pandas as pd
-from backend.layer1.audit import run_layer1_audit
-
-df = pd.read_csv("sample.csv")
-report = run_layer1_audit(
-    df=df,
-    target_col="income",
-    sensitive_cols=["sex", "race"],
-)
-
-print(report["summary"])
-print(report["issues"])
-```
-
-## Limitations
-
-- Layer 2 interpretation is LLM-assisted and may be inaccurate.
-- Fairness recommendations require human review before deployment decisions.
-- High-stakes use cases should include domain expert oversight.
-
-See [ARCHITECTURE.md](./ARCHITECTURE.md) for system structure and flow.
+- `src/auditlens/` — installable package (`core`, `interpretation`, `reporting`, public `audit()` API)
+- `server/auditlens_server/` — FastAPI app (optional extra)
+- `ui/auditlens_ui/` — Streamlit UI (optional extra)
+- `tests/` — unit, integration, and smoke tests by area

@@ -12,27 +12,27 @@ Layer status:
 
 ## Key Components
 
-- [`backend/main.py`](./backend/main.py): FastAPI app bootstrap and router wiring.
-- [`backend/routers/audit.py`](./backend/routers/audit.py): request validation and API endpoints.
-- [`backend/layer1/audit.py`](./backend/layer1/audit.py): orchestrates analyzers into one report.
-- [`backend/layer1/class_distribution.py`](./backend/layer1/class_distribution.py): target class imbalance checks.
-- [`backend/layer1/missing_values.py`](./backend/layer1/missing_values.py): missingness checks across groups.
-- [`backend/layer1/correlations.py`](./backend/layer1/correlations.py): sensitive-to-target correlation checks.
-- [`backend/layer1/subgroup_analysis.py`](./backend/layer1/subgroup_analysis.py): subgroup outcome and parity checks.
-- [`backend/layer1/severity_scorer.py`](./backend/layer1/severity_scorer.py): severity assignment and issue ranking.
-- [`backend/utils/schema.py`](./backend/utils/schema.py): report schema.
-- [`backend/utils/config.py`](./backend/utils/config.py): thresholds and sorting configuration.
-- [`backend/layer2/agent.py`](./backend/layer2/agent.py): Layer 2 orchestration entrypoint.
-- [`backend/layer2/nodes/`](./backend/layer2/nodes/): parse/analyze/clarify/interpret/recommend/report pipeline nodes.
-- [`backend/layer2/llm/`](./backend/layer2/llm/): provider abstraction for OpenAI/Groq/OpenRouter-compatible clients.
-- [`backend/layer3/report_generator.py`](./backend/layer3/report_generator.py): Markdown/PDF report assembly.
-- [`backend/layer3/visualizations.py`](./backend/layer3/visualizations.py): chart generation for reports and UI.
-- [`backend/layer3/artifact_store.py`](./backend/layer3/artifact_store.py): artifact persistence and metadata.
-- [`backend/layer3/report_jobs.py`](./backend/layer3/report_jobs.py): async report job store and worker execution.
-- [`frontend/app.py`](./frontend/app.py): Streamlit entrypoint.
-- [`frontend/ui.py`](./frontend/ui.py): Streamlit rendering and interactions.
-- [`frontend/workflow.py`](./frontend/workflow.py): frontend orchestration for sync/async runs.
-- [`frontend/api_client.py`](./frontend/api_client.py): backend API client and error mapping.
+- [`server/auditlens_server/app.py`](./server/auditlens_server/app.py): FastAPI app bootstrap and router wiring.
+- [`server/auditlens_server/routers/audit.py`](./server/auditlens_server/routers/audit.py): request validation and API endpoints.
+- [`src/auditlens/api.py`](./src/auditlens/api.py): public `audit()` entrypoint and `AuditLensReport` wrapper.
+- [`src/auditlens/core/audit.py`](./src/auditlens/core/audit.py): orchestrates Layer 1 analyzers into one report.
+- [`src/auditlens/core/analyzers/`](./src/auditlens/core/analyzers/): class distribution, missingness, correlations, subgroup parity.
+- [`src/auditlens/core/severity.py`](./src/auditlens/core/severity.py): severity assignment helpers.
+- [`src/auditlens/core/schema.py`](./src/auditlens/core/schema.py): HTTP / Layer 1 Pydantic models.
+- [`src/auditlens/config.py`](./src/auditlens/config.py): thresholds, Layer 2 env-driven settings.
+- [`src/auditlens/interpretation/pipeline.py`](./src/auditlens/interpretation/pipeline.py): Layer 2 LangGraph invoke entrypoint.
+- [`src/auditlens/interpretation/graph.py`](./src/auditlens/interpretation/graph.py): LangGraph wiring.
+- [`src/auditlens/interpretation/nodes/`](./src/auditlens/interpretation/nodes/): parse/analyze/clarify/interpret/recommend/report nodes.
+- [`src/auditlens/interpretation/llm/`](./src/auditlens/interpretation/llm/): `BaseLLMClient`, factory, OpenAI-compatible providers.
+- [`src/auditlens/interpretation/schema.py`](./src/auditlens/interpretation/schema.py): Layer 2 Pydantic models.
+- [`src/auditlens/reporting/generator.py`](./src/auditlens/reporting/generator.py): Markdown/PDF report assembly.
+- [`src/auditlens/reporting/visualizations.py`](./src/auditlens/reporting/visualizations.py): chart generation for reports and UI.
+- [`src/auditlens/reporting/artifacts.py`](./src/auditlens/reporting/artifacts.py): artifact persistence and metadata.
+- [`src/auditlens/reporting/jobs.py`](./src/auditlens/reporting/jobs.py): async report job store and worker execution.
+- [`ui/auditlens_ui/app.py`](./ui/auditlens_ui/app.py): Streamlit entrypoint.
+- [`ui/auditlens_ui/ui.py`](./ui/auditlens_ui/ui.py): Streamlit rendering and interactions.
+- [`ui/auditlens_ui/workflow.py`](./ui/auditlens_ui/workflow.py): UI orchestration for sync/async runs.
+- [`ui/auditlens_ui/api_client.py`](./ui/auditlens_ui/api_client.py): HTTP API client and error mapping.
 
 ## Data Flow
 

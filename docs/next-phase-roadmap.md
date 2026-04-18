@@ -17,6 +17,8 @@ Three rules that override every other decision in this document:
 
 ## Phase 1 — Make the refactor real (this weekend, ~4–6 hours)
 
+**Repo status (implemented in-tree):** dependency pins in `pyproject.toml`, `AuditLensReport` Jupyter/`repr`/`to_dict()` UX, polished `examples/notebook_quickstart.ipynb` (8 cells), `docs/internal/` for archived planning docs, removed root `bias_audit_mvp_plan.html`, `.gitignore` entries for artifacts/COMPAS, PyPI name spot-check documented in `docs/internal/README.md`. **Still manual:** `git push` to `main` (§1.1).
+
 **Why this exists:** Until the refactor is on GitHub with a working `pip install -e .`, everything else in this document is fiction. This phase has zero new features. It just turns the work into a real repository state.
 
 ### 1.1 Push the refactor to `main`

@@ -102,9 +102,38 @@ Or use `./run-dev.sh` after installing `.[ui]` into `.venv`.
 - **[`examples/notebook_quickstart.ipynb`](examples/notebook_quickstart.ipynb)** — short COMPAS tutorial (run top-to-bottom in a clean kernel).
 - **[`docs/internal/`](docs/internal/)** — archived planning notes (MVP plan, layer phase write-ups).
 
-### PyPI package name
+### Install from PyPI
 
-`python3 -m pip index versions auditlens` currently reports **no published distributions**, so the **`auditlens`** name appears **available** before a first release. Re-check immediately before publishing.
+After the first release is uploaded:
+
+```bash
+pip install auditlens
+pip install "auditlens[openai]"   # Layer 2 + PDF/UI extras as needed
+```
+
+### Publish to PyPI (maintainers)
+
+The **wheel and sdist build cleanly** (`python -m build`; `twine check dist/*` passes). What blocks an automated upload from this environment is **PyPI credentials** — you must upload from a machine (or CI) where you are logged in.
+
+1. [Create a PyPI API token](https://pypi.org/manage/account/token/) scoped to the `auditlens` project (create the empty project on PyPI first if needed).
+2. Optional dry run on TestPyPI:
+
+   ```bash
+   python3 -m pip install build twine
+   python3 -m build
+   python3 -m twine check dist/*
+   python3 -m twine upload --repository testpypi dist/*
+   ```
+
+3. Production upload:
+
+   ```bash
+   export TWINE_USERNAME=__token__
+   export TWINE_PASSWORD=pypi-YOUR_TOKEN_HERE
+   python3 -m twine upload dist/*
+   ```
+
+4. Tag the release in git (e.g. `git tag -a v0.1.0 -m "First PyPI release" && git push origin v0.1.0`).
 
 ## Development
 

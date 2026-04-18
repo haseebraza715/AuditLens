@@ -8,8 +8,21 @@ version = "0.1.0"
 description = "Bias and fairness auditing for tabular ML datasets"
 readme = "README.md"
 requires-python = ">=3.9"
-license = { text = "MIT" }
+license = "MIT"
+license-files = ["LICENSE"]
 authors = [{ name = "AuditLens contributors" }]
+keywords = ["fairness", "bias", "audit", "tabular", "machine-learning", "pandas"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
 dependencies = [
     "pandas>=1.5,<3.0",
     "numpy>=1.20,<3.0",
@@ -62,6 +75,12 @@ all = [
     "auditlens[server]",
     "auditlens[ui]",
 ]
+
+[project.urls]
+Homepage = "https://github.com/haseebraza715/AuditLens"
+Repository = "https://github.com/haseebraza715/AuditLens"
+Documentation = "https://github.com/haseebraza715/AuditLens#readme"
+Changelog = "https://github.com/haseebraza715/AuditLens/releases"
 
 [tool.setuptools.packages.find]
 where = ["src", "server", "ui"]

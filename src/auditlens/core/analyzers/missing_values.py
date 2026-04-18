@@ -4,12 +4,14 @@ from typing import Any
 
 import pandas as pd
 
-from backend.layer1.severity_scorer import score_threshold_metric
+from auditlens.core.severity import score_threshold_metric
 
 
 def analyze_missing_values_by_group(
     df: pd.DataFrame,
     sensitive_columns: list[str],
+    *,
+    severity_thresholds: dict[str, dict[str, float]] | None = None,
 ) -> list[dict[str, Any]]:
     issues: list[dict[str, Any]] = []
 
@@ -37,7 +39,9 @@ def analyze_missing_values_by_group(
             min_rate = min(missing_rates.values())
             gap = max_rate - min_rate
 
-            severity, justification = score_threshold_metric("differential_missingness", gap)
+            severity, justification = score_threshold_metric(
+                "differential_missingness", gap, severity_thresholds=severity_thresholds
+            )
             if severity == "low":
                 continue
 

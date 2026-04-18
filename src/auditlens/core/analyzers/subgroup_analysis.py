@@ -4,7 +4,7 @@ from typing import Any
 
 import pandas as pd
 
-from backend.layer1.severity_scorer import score_threshold_metric
+from auditlens.core.severity import score_threshold_metric
 
 
 def _resolve_positive_class(target: pd.Series) -> str:
@@ -23,6 +23,8 @@ def analyze_subgroup_label_distribution(
     target_column: str,
     sensitive_columns: list[str],
     positive_class: str | None = None,
+    *,
+    severity_thresholds: dict[str, dict[str, float]] | None = None,
 ) -> list[dict[str, Any]]:
     issues: list[dict[str, Any]] = []
 
@@ -48,7 +50,9 @@ def analyze_subgroup_label_distribution(
         min_rate = min(rates.values())
         gap = max_rate - min_rate
 
-        severity, justification = score_threshold_metric("demographic_parity_gap", gap)
+        severity, justification = score_threshold_metric(
+            "demographic_parity_gap", gap, severity_thresholds=severity_thresholds
+        )
         if severity == "low":
             continue
 

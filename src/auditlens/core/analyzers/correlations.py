@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 from scipy.stats import chi2_contingency, pearsonr, pointbiserialr, spearmanr
 
-from backend.layer1.severity_scorer import score_threshold_metric
+from auditlens.core.severity import score_threshold_metric
 
 
 def _is_numeric(series: pd.Series) -> bool:
@@ -63,6 +63,8 @@ def analyze_sensitive_correlations(
     df: pd.DataFrame,
     target_column: str,
     sensitive_columns: list[str],
+    *,
+    severity_thresholds: dict[str, dict[str, float]] | None = None,
 ) -> list[dict[str, Any]]:
     issues: list[dict[str, Any]] = []
     target = df[target_column]
@@ -99,7 +101,9 @@ def analyze_sensitive_correlations(
             method, score = _continuous_corr(clean_sensitive, clean_target)
 
         abs_score = abs(float(score))
-        severity, justification = score_threshold_metric("cramers_v", abs_score)
+        severity, justification = score_threshold_metric(
+            "cramers_v", abs_score, severity_thresholds=severity_thresholds
+        )
         if severity == "low":
             continue
 

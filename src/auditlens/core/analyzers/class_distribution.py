@@ -4,14 +4,19 @@ from typing import Any
 
 import pandas as pd
 
-from backend.layer1.severity_scorer import score_threshold_metric
+from auditlens.core.severity import score_threshold_metric
 
 
 def _normalize_series(series: pd.Series) -> pd.Series:
     return series.fillna("__MISSING__").astype(str)
 
 
-def analyze_class_distribution(df: pd.DataFrame, target_column: str) -> list[dict[str, Any]]:
+def analyze_class_distribution(
+    df: pd.DataFrame,
+    target_column: str,
+    *,
+    severity_thresholds: dict[str, dict[str, float]] | None = None,
+) -> list[dict[str, Any]]:
     target = _normalize_series(df[target_column])
     counts = target.value_counts(dropna=False)
     proportions = (counts / counts.sum()).to_dict()
@@ -49,7 +54,9 @@ def analyze_class_distribution(df: pd.DataFrame, target_column: str) -> list[dic
     imbalance_ratio = float("inf") if minority_count == 0 else majority_count / minority_count
 
     if len(counts) == 2:
-        severity, justification = score_threshold_metric("imbalance_ratio", imbalance_ratio)
+        severity, justification = score_threshold_metric(
+            "imbalance_ratio", imbalance_ratio, severity_thresholds=severity_thresholds
+        )
     else:
         min_prop = float(min(proportions.values()))
         if min_prop < 0.05:

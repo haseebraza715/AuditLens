@@ -12,18 +12,9 @@ from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from pandas.errors import EmptyDataError, ParserError
 
-from backend.layer2.agent import run_layer2_pipeline
-from backend.layer2.errors import Layer2InvalidResponseError, Layer2ProviderError
-from backend.layer3.artifact_store import (
-    ArtifactNotFoundError,
-    get_artifact_metadata,
-    save_report_artifact,
-)
-from backend.layer3.report_jobs import report_job_store, start_report_job
-from backend.layer3.report_generator import build_markdown_report, build_pdf_report, encode_pdf_base64
-from backend.utils.config import Layer2ConfigurationError, get_layer2_settings
-from backend.layer1.audit import run_layer1_audit
-from backend.utils.schema import (
+from auditlens.config import get_layer2_settings
+from auditlens.core.audit import run_layer1_audit
+from auditlens.core.schema import (
     AnalyzeTaskReportResponse,
     AnalyzeTaskResponse,
     ReportJobAccepted,
@@ -33,8 +24,17 @@ from backend.utils.schema import (
     StoredReportArtifact,
     UploadPreview,
 )
+from auditlens.exceptions import Layer2ConfigurationError, Layer2InvalidResponseError, Layer2ProviderError
+from auditlens.interpretation.pipeline import run_layer2_pipeline
+from auditlens.reporting.artifacts import ArtifactNotFoundError, get_artifact_metadata, save_report_artifact
+from auditlens.reporting.generator import build_markdown_report, build_pdf_report, encode_pdf_base64
+from auditlens.reporting.jobs import report_job_store, start_report_job
 
 router = APIRouter()
+
+
+def _layer1_for_response(layer1_report: dict[str, object]) -> dict[str, object]:
+    return {k: v for k, v in layer1_report.items() if k != "severity_thresholds"}
 
 
 def _build_layer1_only_response(
@@ -364,7 +364,7 @@ def analyze(
         )
 
     report = run_layer1_audit(df, target_column, normalized_sensitive)
-    return AuditReport.model_validate(report)
+    return AuditReport.model_validate(_layer1_for_response(report))
 
 
 @router.post("/analyze-task", response_model=AnalyzeTaskResponse)

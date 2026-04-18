@@ -4,7 +4,7 @@ from typing import Any
 
 import streamlit as st
 
-from frontend.constants import DEFAULT_API_BASE_URL
+from auditlens_ui.constants import DEFAULT_API_BASE_URL
 
 
 def init_state() -> None:

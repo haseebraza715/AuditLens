@@ -4,7 +4,7 @@ from typing import Any
 
 import streamlit as st
 
-from backend.layer3 import visualizations as viz
+from auditlens.reporting import visualizations as viz
 
 
 def _build_fairness_overview(layer1_report: dict[str, Any]) -> bytes:

@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from backend.layer1.audit import run_layer1_audit
+from auditlens.core.audit import run_layer1_audit
 
 
 ADULT_COLUMNS = [
@@ -27,7 +27,7 @@ ADULT_COLUMNS = [
 
 
 def test_adult_income_smoke() -> None:
-    fixture_path = Path(__file__).resolve().parent / "fixtures" / "adult.data"
+    fixture_path = Path(__file__).resolve().parents[1] / "fixtures" / "adult.data"
     df = pd.read_csv(
         fixture_path,
         header=None,

@@ -3,8 +3,8 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from backend.layer2.state import AuditState
-from backend.utils.config import SEVERITY_THRESHOLDS
+from auditlens.config import SEVERITY_THRESHOLDS
+from auditlens.interpretation.state import AuditState
 
 logger = logging.getLogger("layer2")
 
@@ -54,6 +54,9 @@ def report_node(state: AuditState) -> AuditState:
             }
         )
 
+    layer1_payload = dict(state.get("raw_json") or {})
+    severity_thresholds = layer1_payload.get("severity_thresholds") or SEVERITY_THRESHOLDS
+
     final_report = {
         "task_description": state.get("task_description", ""),
         "task_context": task_context,
@@ -72,7 +75,7 @@ def report_node(state: AuditState) -> AuditState:
             "request_id": str(state.get("request_id", "")),
             "layer2_provider": str(state.get("layer2_provider", "unknown")),
             "layer2_model": str(state.get("layer2_model", "unknown")),
-            "severity_thresholds": SEVERITY_THRESHOLDS,
+            "severity_thresholds": severity_thresholds,
         },
     }
 

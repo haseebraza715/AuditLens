@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 
-from backend.layer2.state import AuditState
+from auditlens.interpretation.state import AuditState
 
 logger = logging.getLogger("layer2")
 

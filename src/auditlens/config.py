@@ -5,9 +5,7 @@ from dataclasses import dataclass
 from functools import lru_cache
 from typing import Literal
 
-
-class Layer2ConfigurationError(RuntimeError):
-    """Raised when Layer 2 runtime configuration is invalid."""
+from auditlens.exceptions import Layer2ConfigurationError
 
 
 SEVERITY_THRESHOLDS = {

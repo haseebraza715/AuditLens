@@ -1,9 +1,17 @@
 from __future__ import annotations
 
-from openai import OpenAI
+from auditlens.exceptions import Layer2ProviderError
+from auditlens.interpretation.llm.base import BaseLLMClient
 
-from backend.layer2.errors import Layer2ProviderError
-from backend.layer2.llm.base import BaseLLMClient
+
+def _openai_client_cls():  # lazy import for optional extra
+    try:
+        from openai import OpenAI
+    except ImportError as exc:  # pragma: no cover - exercised via extras
+        raise ImportError(
+            "OpenAI support requires the 'openai' SDK. Install with: pip install auditlens[openai]"
+        ) from exc
+    return OpenAI
 
 
 class OpenAICompatibleClient(BaseLLMClient):
@@ -15,6 +23,7 @@ class OpenAICompatibleClient(BaseLLMClient):
         timeout_seconds: float,
         default_headers: dict[str, str] | None = None,
     ) -> None:
+        OpenAI = _openai_client_cls()
         self._model = model
         self._client = OpenAI(
             api_key=api_key,

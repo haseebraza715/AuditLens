@@ -4,10 +4,10 @@ from typing import Any
 
 import streamlit as st
 
-from backend.layer3 import visualizations as viz
-from frontend.charts import render_inline_charts
-from frontend.downloads import render_downloads
-from frontend.styles import SEVERITY_COLORS
+from auditlens.reporting import visualizations as viz
+from auditlens_ui.charts import render_inline_charts
+from auditlens_ui.downloads import render_downloads
+from auditlens_ui.styles import SEVERITY_COLORS
 
 
 def _build_fairness_overview(layer1_report: dict[str, Any]) -> bytes:

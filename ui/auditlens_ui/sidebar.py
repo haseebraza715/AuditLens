@@ -5,9 +5,9 @@ import io
 import pandas as pd
 import streamlit as st
 
-from frontend.constants import ASYNC_ROW_THRESHOLD
-from frontend.state import reset_run_state
-from frontend.workflow import on_new_file, start_audit_run
+from auditlens_ui.constants import ASYNC_ROW_THRESHOLD
+from auditlens_ui.state import reset_run_state
+from auditlens_ui.workflow import on_new_file, start_audit_run
 
 
 def _configured_columns() -> bool:

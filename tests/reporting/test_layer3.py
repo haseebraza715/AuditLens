@@ -4,11 +4,14 @@ import base64
 import json
 import time
 
+import pytest
+
+pytest.importorskip("fastapi")
 from fastapi.testclient import TestClient
 
-from backend.layer2.llm.base import BaseLLMClient
-from backend.layer3.report_generator import build_markdown_report, build_pdf_report
-from backend.layer3.visualizations import (
+from auditlens.interpretation.llm.base import BaseLLMClient
+from auditlens.reporting.generator import build_markdown_report, build_pdf_report
+from auditlens.reporting.visualizations import (
     build_class_distribution_chart,
     build_correlation_heatmap,
     build_demographic_parity_chart,
@@ -16,8 +19,8 @@ from backend.layer3.visualizations import (
     build_missingness_heatmap,
     build_severity_summary_chart,
 )
-from backend.main import app
-from backend.utils.config import clear_layer2_settings_cache
+from auditlens_server.app import app
+from auditlens.config import clear_layer2_settings_cache
 
 client = TestClient(app)
 
@@ -153,7 +156,7 @@ def test_analyze_task_report_complete(monkeypatch) -> None:
     monkeypatch.setenv("LAYER2_PROVIDER", "openai")
     monkeypatch.setenv("OPENAI_API_KEY", "test-key")
     clear_layer2_settings_cache()
-    monkeypatch.setattr("backend.layer2.agent.create_provider_client", lambda: _Layer3LLM())
+    monkeypatch.setattr("auditlens.interpretation.pipeline.create_provider_client", lambda: _Layer3LLM())
 
     csv_text = "sex,race,target\nM,A,1\nF,B,0\n"
     response = client.post(
@@ -178,7 +181,7 @@ def test_analyze_task_report_needs_clarification(monkeypatch) -> None:
     monkeypatch.setenv("LAYER2_PROVIDER", "openai")
     monkeypatch.setenv("OPENAI_API_KEY", "test-key")
     clear_layer2_settings_cache()
-    monkeypatch.setattr("backend.layer2.agent.create_provider_client", lambda: _ClarifyLLM())
+    monkeypatch.setattr("auditlens.interpretation.pipeline.create_provider_client", lambda: _ClarifyLLM())
 
     csv_text = "sex,race,target\nM,A,1\nF,B,0\n"
     response = client.post(
@@ -319,7 +322,7 @@ def test_analyze_task_report_pdf_complete(monkeypatch) -> None:
     monkeypatch.setenv("LAYER2_PROVIDER", "openai")
     monkeypatch.setenv("OPENAI_API_KEY", "test-key")
     clear_layer2_settings_cache()
-    monkeypatch.setattr("backend.layer2.agent.create_provider_client", lambda: _Layer3LLM())
+    monkeypatch.setattr("auditlens.interpretation.pipeline.create_provider_client", lambda: _Layer3LLM())
 
     csv_text = "sex,race,target\nM,A,1\nF,B,0\n"
     response = client.post(
@@ -345,7 +348,7 @@ def test_analyze_task_report_pdf_needs_clarification(monkeypatch) -> None:
     monkeypatch.setenv("LAYER2_PROVIDER", "openai")
     monkeypatch.setenv("OPENAI_API_KEY", "test-key")
     clear_layer2_settings_cache()
-    monkeypatch.setattr("backend.layer2.agent.create_provider_client", lambda: _ClarifyLLM())
+    monkeypatch.setattr("auditlens.interpretation.pipeline.create_provider_client", lambda: _ClarifyLLM())
 
     csv_text = "sex,race,target\nM,A,1\nF,B,0\n"
     response = client.post(
@@ -368,7 +371,7 @@ def test_store_and_download_report_artifact(monkeypatch, tmp_path) -> None:
     monkeypatch.setenv("OPENAI_API_KEY", "test-key")
     monkeypatch.setenv("AUDITLENS_ARTIFACT_DIR", str(tmp_path / "artifacts"))
     clear_layer2_settings_cache()
-    monkeypatch.setattr("backend.layer2.agent.create_provider_client", lambda: _Layer3LLM())
+    monkeypatch.setattr("auditlens.interpretation.pipeline.create_provider_client", lambda: _Layer3LLM())
 
     csv_text = "sex,race,target\nM,A,1\nF,B,0\n"
     store_response = client.post(
@@ -401,7 +404,7 @@ def test_async_report_job_flow(monkeypatch, tmp_path) -> None:
     monkeypatch.setenv("OPENAI_API_KEY", "test-key")
     monkeypatch.setenv("AUDITLENS_ARTIFACT_DIR", str(tmp_path / "artifacts-jobs"))
     clear_layer2_settings_cache()
-    monkeypatch.setattr("backend.layer2.agent.create_provider_client", lambda: _Layer3LLM())
+    monkeypatch.setattr("auditlens.interpretation.pipeline.create_provider_client", lambda: _Layer3LLM())
 
     csv_text = "sex,race,target\nM,A,1\nF,B,0\n"
     create_response = client.post(

@@ -2,11 +2,14 @@ from __future__ import annotations
 
 import json
 
+import pytest
+
+pytest.importorskip("fastapi")
 from fastapi.testclient import TestClient
 
-from backend.layer2.llm.base import BaseLLMClient
-from backend.main import app
-from backend.utils.config import clear_layer2_settings_cache, get_layer2_settings
+from auditlens.interpretation.llm.base import BaseLLMClient
+from auditlens_server.app import app
+from auditlens.config import clear_layer2_settings_cache, get_layer2_settings
 
 client = TestClient(app)
 
@@ -128,7 +131,7 @@ def test_analyze_task_missing_provider_config(monkeypatch) -> None:
 def test_analyze_task_placeholder_flow(monkeypatch) -> None:
     monkeypatch.setenv("LAYER2_PROVIDER", "openai")
     monkeypatch.setenv("OPENAI_API_KEY", "test-key")
-    monkeypatch.setattr("backend.layer2.agent.create_provider_client", lambda: _FoundationLLM())
+    monkeypatch.setattr("auditlens.interpretation.pipeline.create_provider_client", lambda: _FoundationLLM())
     clear_layer2_settings_cache()
 
     csv_text = "sex,race,target\nM,A,1\nF,B,0\n"

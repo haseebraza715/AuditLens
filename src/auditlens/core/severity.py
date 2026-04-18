@@ -1,10 +1,16 @@
 from __future__ import annotations
 
-from backend.utils.config import SEVERITY_THRESHOLDS
+from auditlens.config import SEVERITY_THRESHOLDS
 
 
-def score_threshold_metric(metric_name: str, value: float) -> tuple[str, str]:
-    thresholds = SEVERITY_THRESHOLDS[metric_name]
+def score_threshold_metric(
+    metric_name: str,
+    value: float,
+    *,
+    severity_thresholds: dict[str, dict[str, float]] | None = None,
+) -> tuple[str, str]:
+    table = severity_thresholds if severity_thresholds is not None else SEVERITY_THRESHOLDS
+    thresholds = table[metric_name]
     high = thresholds["high"]
     medium = thresholds["medium"]
 

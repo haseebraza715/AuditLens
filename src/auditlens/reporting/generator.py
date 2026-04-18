@@ -5,21 +5,6 @@ import io
 from datetime import datetime, timezone
 from typing import Any
 
-from reportlab.lib import colors
-from reportlab.lib.pagesizes import A4
-from reportlab.lib.styles import getSampleStyleSheet
-from reportlab.lib.units import inch
-from reportlab.platypus import Image, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
-
-from backend.layer3.visualizations import (
-    build_class_distribution_chart,
-    build_correlation_heatmap,
-    build_demographic_parity_chart,
-    build_issue_type_chart,
-    build_missingness_heatmap,
-    build_severity_summary_chart,
-)
-
 
 def _severity_badge(severity: str) -> str:
     level = (severity or "low").lower()
@@ -195,6 +180,27 @@ def build_pdf_report(
     layer1_report: dict[str, Any] | None = None,
     generated_at_utc: datetime | None = None,
 ) -> bytes:
+    try:
+        from reportlab.lib import colors
+        from reportlab.lib.pagesizes import A4
+        from reportlab.lib.styles import getSampleStyleSheet
+        from reportlab.lib.units import inch
+        from reportlab.platypus import Image, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+    except ImportError as exc:  # pragma: no cover
+        raise ImportError(
+            "PDF export requires ReportLab and charts require matplotlib. "
+            "Install with: pip install auditlens[pdf]"
+        ) from exc
+
+    from auditlens.reporting.visualizations import (
+        build_class_distribution_chart,
+        build_correlation_heatmap,
+        build_demographic_parity_chart,
+        build_issue_type_chart,
+        build_missingness_heatmap,
+        build_severity_summary_chart,
+    )
+
     issued_at = generated_at_utc or datetime.now(timezone.utc)
     task_context = final_report.get("task_context", {}) or {}
     issues = list(final_report.get("issues", []) or [])

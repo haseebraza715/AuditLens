@@ -9,10 +9,10 @@ from typing import Any
 import pandas as pd
 import streamlit as st
 
-from backend.layer3.report_generator import build_markdown_report
-from frontend.api_client import ApiError, get_json, post_form
-from frontend.constants import ASYNC_ROW_THRESHOLD, POLL_INTERVAL_SECONDS
-from frontend.state import reset_run_state
+from auditlens.reporting.generator import build_markdown_report
+from auditlens_ui.api_client import ApiError, get_json, post_form
+from auditlens_ui.constants import ASYNC_ROW_THRESHOLD, POLL_INTERVAL_SECONDS
+from auditlens_ui.state import reset_run_state
 
 
 def upload_preview(file_name: str, file_bytes: bytes) -> dict[str, Any]:
@@ -291,7 +291,7 @@ def consume_audit_response(payload: dict[str, Any]) -> None:
         return
 
     if status != "complete":
-        raise ApiError("Unexpected status from backend response.")
+        raise ApiError("Unexpected status from API response.")
 
     final_report = payload.get("final_report")
     artifact = payload.get("report_artifact")

@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import streamlit as st
 
-from frontend.state import init_state
-from frontend.ui import render_app
+from auditlens_ui.state import init_state
+from auditlens_ui.ui import render_app
 
 
 def main() -> None:

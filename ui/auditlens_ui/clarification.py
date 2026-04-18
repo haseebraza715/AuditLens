@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import streamlit as st
 
-from frontend.workflow import submit_clarification_answers
+from auditlens_ui.workflow import submit_clarification_answers
 
 
 def render_clarification_section() -> None:

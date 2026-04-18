@@ -4,15 +4,18 @@ import json
 import re
 import time
 
+import pytest
+
+pytest.importorskip("fastapi")
 from fastapi.testclient import TestClient
 
-from backend.layer2.agent import run_layer2_pipeline
-from backend.layer2.errors import Layer2ProviderError
-from backend.layer2.llm.base import BaseLLMClient
-from backend.layer2.nodes.analyze import analyze_node
-from backend.layer2.nodes.parse import parse_node
-from backend.main import app
-from backend.utils.config import clear_layer2_settings_cache
+from auditlens.interpretation.pipeline import run_layer2_pipeline
+from auditlens.exceptions import Layer2ProviderError
+from auditlens.interpretation.llm.base import BaseLLMClient
+from auditlens.interpretation.nodes.analyze import analyze_node
+from auditlens.interpretation.nodes.parse import parse_node
+from auditlens_server.app import app
+from auditlens.config import clear_layer2_settings_cache
 
 client = TestClient(app)
 
@@ -242,7 +245,7 @@ def test_analyze_task_api_flow(monkeypatch) -> None:
             "confidence": 0.2,
         }
     )
-    monkeypatch.setattr("backend.layer2.agent.create_provider_client", lambda: fake)
+    monkeypatch.setattr("auditlens.interpretation.pipeline.create_provider_client", lambda: fake)
 
     csv_text = "sex,race,target\nM,A,1\nF,B,0\n"
     first = client.post(
@@ -285,7 +288,7 @@ def test_analyze_task_provider_failure_returns_502(monkeypatch) -> None:
     def _raise() -> BaseLLMClient:
         raise Layer2ProviderError("provider unavailable")
 
-    monkeypatch.setattr("backend.layer2.agent.create_provider_client", _raise)
+    monkeypatch.setattr("auditlens.interpretation.pipeline.create_provider_client", _raise)
 
     csv_text = "sex,race,target\nM,A,1\nF,B,0\n"
     response = client.post(

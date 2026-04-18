@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import streamlit as st
 
-from frontend.api_client import ApiError, download_bytes
+from auditlens_ui.api_client import ApiError, download_bytes
 
 
 def render_downloads() -> None:

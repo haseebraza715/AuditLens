@@ -1,21 +1,19 @@
 from __future__ import annotations
 
-from backend.layer2.errors import Layer2ConfigurationError
-from backend.layer2.llm.base import BaseLLMClient
-from backend.layer2.llm.groq_client import GroqClient
-from backend.layer2.llm.openai_client import OpenAICompatibleClient
-from backend.layer2.llm.openrouter_client import OpenRouterClient
-from backend.utils.config import Layer2ConfigurationError as ConfigError
-from backend.utils.config import get_layer2_settings
+from auditlens.config import get_layer2_settings
+from auditlens.exceptions import Layer2ConfigurationError
+from auditlens.interpretation.llm.base import BaseLLMClient
 
 
 def create_provider_client() -> BaseLLMClient:
     try:
         settings = get_layer2_settings()
-    except ConfigError as exc:
+    except Layer2ConfigurationError as exc:
         raise Layer2ConfigurationError(str(exc)) from exc
 
     if settings.provider == "openai":
+        from auditlens.interpretation.llm.providers.openai import OpenAICompatibleClient
+
         return OpenAICompatibleClient(
             api_key=settings.api_key,
             model=settings.model,
@@ -23,6 +21,8 @@ def create_provider_client() -> BaseLLMClient:
             timeout_seconds=settings.timeout_seconds,
         )
     if settings.provider == "groq":
+        from auditlens.interpretation.llm.providers.groq import GroqClient
+
         return GroqClient(
             api_key=settings.api_key,
             model=settings.model,
@@ -30,6 +30,8 @@ def create_provider_client() -> BaseLLMClient:
             timeout_seconds=settings.timeout_seconds,
         )
     if settings.provider == "openrouter":
+        from auditlens.interpretation.llm.providers.openrouter import OpenRouterClient
+
         return OpenRouterClient(
             api_key=settings.api_key,
             model=settings.model,

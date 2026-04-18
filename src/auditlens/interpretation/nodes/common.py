@@ -3,8 +3,8 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from backend.layer2.errors import Layer2InvalidResponseError
-from backend.layer2.llm.base import BaseLLMClient
+from auditlens.exceptions import Layer2InvalidResponseError
+from auditlens.interpretation.llm.base import BaseLLMClient
 
 
 def parse_json_with_retries(

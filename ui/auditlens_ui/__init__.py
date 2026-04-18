@@ -1,1 +1,1 @@
-"""AuditLens Streamlit frontend package."""
+"""AuditLens Streamlit UI package."""

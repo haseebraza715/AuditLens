@@ -4,10 +4,10 @@ import json
 import logging
 from typing import Any
 
-from backend.layer2.llm.factory import create_provider_client
-from backend.layer2.nodes.common import parse_json_with_retries, shorten_text
-from backend.layer2.prompts.recommend_prompt import RECOMMEND_PROMPT_TEMPLATE
-from backend.layer2.state import AuditState
+from auditlens.interpretation.llm.factory import create_provider_client
+from auditlens.interpretation.nodes.common import parse_json_with_retries, shorten_text
+from auditlens.interpretation.prompts.recommend_prompt import RECOMMEND_PROMPT_TEMPLATE
+from auditlens.interpretation.state import AuditState
 
 logger = logging.getLogger("layer2")
 

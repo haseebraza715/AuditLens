@@ -3,8 +3,8 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from backend.layer2.state import AuditState
-from backend.utils.config import SEVERITY_ORDER
+from auditlens.config import SEVERITY_ORDER
+from auditlens.interpretation.state import AuditState
 
 logger = logging.getLogger("layer2")
 

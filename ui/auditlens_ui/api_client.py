@@ -6,7 +6,7 @@ from typing import Any
 import requests
 import streamlit as st
 
-from frontend.constants import REQUEST_TIMEOUT_SECONDS
+from auditlens_ui.constants import REQUEST_TIMEOUT_SECONDS
 
 
 class ApiError(RuntimeError):

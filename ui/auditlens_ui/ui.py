@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import streamlit as st
 
-from frontend.clarification import render_clarification_section
-from frontend.header import render_header, render_step_tracker
-from frontend.risk_findings import render_final_report_section
-from frontend.sidebar import render_sidebar
-from frontend.styles import apply_styles
-from frontend.workflow import poll_async_job_if_needed
+from auditlens_ui.clarification import render_clarification_section
+from auditlens_ui.header import render_header, render_step_tracker
+from auditlens_ui.risk_findings import render_final_report_section
+from auditlens_ui.sidebar import render_sidebar
+from auditlens_ui.styles import apply_styles
+from auditlens_ui.workflow import poll_async_job_if_needed
 
 
 def _compute_step() -> int:

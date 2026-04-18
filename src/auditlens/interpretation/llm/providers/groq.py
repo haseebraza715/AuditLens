@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from backend.layer2.llm.openai_client import OpenAICompatibleClient
+from auditlens.interpretation.llm.providers.openai import OpenAICompatibleClient
 
 
 class GroqClient(OpenAICompatibleClient):

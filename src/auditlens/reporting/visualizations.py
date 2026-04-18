@@ -3,12 +3,25 @@ from __future__ import annotations
 import io
 from typing import Any
 
-import matplotlib
+try:
+    import matplotlib
 
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
-import numpy as np
-from matplotlib.ticker import PercentFormatter
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import numpy as np
+    from matplotlib.ticker import PercentFormatter
+except ImportError:  # pragma: no cover - optional extra
+    plt = None  # type: ignore[assignment]
+    np = None  # type: ignore[assignment]
+    PercentFormatter = None  # type: ignore[assignment]
+
+
+def _require_matplotlib() -> None:
+    if plt is None or np is None or PercentFormatter is None:
+        raise ImportError(
+            "Chart generation requires matplotlib. Install with: pip install auditlens[viz]"
+        )
+
 
 _SPINE_COLOR = "#e0e0e0"
 _FONT_COLOR = "#102a43"
@@ -33,6 +46,7 @@ def _fig_to_png_bytes() -> bytes:
 
 
 def build_severity_summary_chart(layer1_report: dict[str, Any] | None) -> bytes:
+    _require_matplotlib()
     summary = (layer1_report or {}).get("summary", {}) or {}
     labels = ["High", "Medium", "Low"]
     values = [
@@ -52,6 +66,7 @@ def build_severity_summary_chart(layer1_report: dict[str, Any] | None) -> bytes:
 
 
 def build_issue_type_chart(final_report: dict[str, Any]) -> bytes:
+    _require_matplotlib()
     issues = list(final_report.get("issues", []) or [])
     counts: dict[str, int] = {}
     for entry in issues:
@@ -78,6 +93,7 @@ def build_issue_type_chart(final_report: dict[str, Any]) -> bytes:
 
 
 def build_class_distribution_chart(layer1_report: dict[str, Any] | None) -> bytes:
+    _require_matplotlib()
     issues = list((layer1_report or {}).get("issues", []) or [])
     class_counts: dict[str, int] = {}
     for issue in issues:
@@ -110,6 +126,7 @@ def build_class_distribution_chart(layer1_report: dict[str, Any] | None) -> byte
 
 
 def build_demographic_parity_chart(layer1_report: dict[str, Any] | None) -> bytes:
+    _require_matplotlib()
     issues = list((layer1_report or {}).get("issues", []) or [])
     best_issue: dict[str, Any] | None = None
     best_gap = -1.0
@@ -141,6 +158,7 @@ def build_demographic_parity_chart(layer1_report: dict[str, Any] | None) -> byte
 
 
 def build_correlation_heatmap(layer1_report: dict[str, Any] | None) -> bytes:
+    _require_matplotlib()
     issues = list((layer1_report or {}).get("issues", []) or [])
     labels: list[str] = []
     values: list[float] = []
@@ -168,6 +186,7 @@ def build_correlation_heatmap(layer1_report: dict[str, Any] | None) -> bytes:
 
 
 def build_missingness_heatmap(layer1_report: dict[str, Any] | None) -> bytes:
+    _require_matplotlib()
     issues = list((layer1_report or {}).get("issues", []) or [])
     sensitive_labels: list[str] = []
     feature_labels: list[str] = []
@@ -209,6 +228,7 @@ def build_missingness_heatmap(layer1_report: dict[str, Any] | None) -> bytes:
 
 
 def build_fairness_overview_chart(layer1_report: dict[str, Any] | None) -> bytes:
+    _require_matplotlib()
     issues = list((layer1_report or {}).get("issues", []) or [])
     labels: list[str] = []
     values: list[float] = []

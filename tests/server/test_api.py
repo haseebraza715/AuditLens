@@ -2,9 +2,12 @@ from __future__ import annotations
 
 import io
 
+import pytest
+
+pytest.importorskip("fastapi")
 from fastapi.testclient import TestClient
 
-from backend.main import app
+from auditlens_server.app import app
 
 client = TestClient(app)
 

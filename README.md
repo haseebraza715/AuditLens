@@ -113,27 +113,41 @@ pip install "auditlens[openai]"   # Layer 2 + PDF/UI extras as needed
 
 ### Publish to PyPI (maintainers)
 
-The **wheel and sdist build cleanly** (`python -m build`; `twine check dist/*` passes). What blocks an automated upload from this environment is **PyPI credentials** — you must upload from a machine (or CI) where you are logged in.
+The repo includes GitHub Actions workflows under **`.github/workflows/`**:
 
-1. [Create a PyPI API token](https://pypi.org/manage/account/token/) scoped to the `auditlens` project (create the empty project on PyPI first if needed).
-2. Optional dry run on TestPyPI:
+| File | Purpose |
+| --- | --- |
+| [`ci.yml`](.github/workflows/ci.yml) | Runs tests on Python 3.9 / 3.11 / 3.12 on every push and PR to `main`. |
+| [`publish-pypi.yml`](.github/workflows/publish-pypi.yml) | Builds and publishes to PyPI using **Trusted Publishing** (OIDC — no long-lived PyPI token in GitHub secrets). |
 
-   ```bash
-   python3 -m pip install build twine
-   python3 -m build
-   python3 -m twine check dist/*
-   python3 -m twine upload --repository testpypi dist/*
-   ```
+#### Trusted Publishing (recommended)
 
-3. Production upload:
+1. On **PyPI**: create the `auditlens` project → **Manage** → **Publishing** → add a **pending** trusted publisher:
+   - **PyPI project name:** `auditlens`
+   - **Owner / repository:** your GitHub org or user + `AuditLens`
+   - **Workflow name:** `publish-pypi.yml` (this is the **filename** only; PyPI may show it as `.github/workflows/publish-pypi.yml` depending on the form)
+   - **Environment name:** `pypi` (must match the `environment: name: pypi` job in the workflow)
 
-   ```bash
-   export TWINE_USERNAME=__token__
-   export TWINE_PASSWORD=pypi-YOUR_TOKEN_HERE
-   python3 -m twine upload dist/*
-   ```
+2. On **GitHub**: repo **Settings → Environments → New environment** → name it **`pypi`** (no secrets required for OIDC).
 
-4. Tag the release in git (e.g. `git tag -a v0.1.0 -m "First PyPI release" && git push origin v0.1.0`).
+3. Merge these workflow files to **`main`**, then on PyPI confirm the **pending** publisher (PyPI verifies against a successful workflow run).
+
+4. **Publish:** create a [GitHub Release](https://github.com/haseebraza715/AuditLens/releases) and publish it (or run the workflow manually via **Actions → Publish to PyPI → Run workflow**). The release event triggers `publish-pypi.yml`, which runs `python -m build` and uploads `dist/*`.
+
+5. Keep **`version`** in `pyproject.toml` in sync with the release tag you expect (e.g. tag `v0.1.0` matches `version = "0.1.0"`).
+
+#### Manual upload (token fallback)
+
+The wheel and sdist build cleanly (`python -m build`; `twine check dist/*` passes). From a machine with credentials:
+
+```bash
+python3 -m pip install build twine
+python3 -m build
+python3 -m twine check dist/*
+export TWINE_USERNAME=__token__
+export TWINE_PASSWORD=pypi-YOUR_TOKEN_HERE
+python3 -m twine upload dist/*
+```
 
 ## Development
 

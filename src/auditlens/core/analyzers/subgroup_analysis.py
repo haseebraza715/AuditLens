@@ -10,6 +10,8 @@ from auditlens.core.severity import score_threshold_metric
 def _resolve_positive_class(target: pd.Series) -> str:
     normalized = target.fillna("__MISSING__").astype(str)
     counts = normalized.value_counts(dropna=False)
+    if len(counts) == 0:
+        return "__MISSING__"
     if len(counts) <= 1:
         return str(counts.index[0])
 

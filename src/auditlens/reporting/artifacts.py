@@ -75,3 +75,42 @@ def get_artifact_metadata(artifact_id: str, *, artifact_dir: str | os.PathLike[s
     if not metadata_file.exists():
         raise ArtifactNotFoundError(f"Artifact '{artifact_id}' was not found")
     return json.loads(metadata_file.read_text(encoding="utf-8"))
+
+
+def artifact_is_expired(metadata: dict[str, Any], *, now: datetime | None = None) -> bool:
+    current = now or datetime.now(timezone.utc)
+    try:
+        expires_at = datetime.fromisoformat(str(metadata["expires_at_utc"]))
+    except (KeyError, ValueError):
+        return False
+    return current >= expires_at
+
+
+def delete_artifact(artifact_id: str, *, artifact_dir: str | os.PathLike[str] | None = None) -> None:
+    metadata_file = _metadata_path(artifact_id, artifact_dir=artifact_dir)
+    try:
+        metadata = json.loads(metadata_file.read_text(encoding="utf-8"))
+        storage_path = Path(str(metadata.get("storage_path", "")))
+        if storage_path.name:
+            storage_path.unlink(missing_ok=True)
+    except (OSError, json.JSONDecodeError):
+        pass
+    metadata_file.unlink(missing_ok=True)
+
+
+def purge_expired_artifacts(
+    *,
+    artifact_dir: str | os.PathLike[str] | None = None,
+    now: datetime | None = None,
+) -> int:
+    """Remove every expired artifact; returns how many were purged."""
+    purged = 0
+    for metadata_file in _resolve_root(artifact_dir).glob("*.json"):
+        try:
+            metadata = json.loads(metadata_file.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        if artifact_is_expired(metadata, now=now):
+            delete_artifact(metadata_file.stem, artifact_dir=artifact_dir)
+            purged += 1
+    return purged

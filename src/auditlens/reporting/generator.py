@@ -185,7 +185,14 @@ def build_pdf_report(
         from reportlab.lib.pagesizes import A4
         from reportlab.lib.styles import getSampleStyleSheet
         from reportlab.lib.units import inch
-        from reportlab.platypus import Image, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+        from reportlab.platypus import (
+            Image,
+            Paragraph,
+            SimpleDocTemplate,
+            Spacer,
+            Table,
+            TableStyle,
+        )
     except ImportError as exc:  # pragma: no cover
         raise ImportError(
             "PDF export requires ReportLab and charts require matplotlib. "

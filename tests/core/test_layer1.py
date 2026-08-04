@@ -4,11 +4,13 @@ import time
 
 import pandas as pd
 
-from auditlens.core.audit import run_layer1_audit
 from auditlens.core.analyzers.class_distribution import analyze_class_distribution
 from auditlens.core.analyzers.correlations import analyze_sensitive_correlations
 from auditlens.core.analyzers.missing_values import analyze_missing_values_by_group
-from auditlens.core.analyzers.subgroup_analysis import analyze_subgroup_label_distribution
+from auditlens.core.analyzers.subgroup_analysis import (
+    analyze_subgroup_label_distribution,
+)
+from auditlens.core.audit import run_layer1_audit
 
 
 def test_class_distribution_binary_high() -> None:

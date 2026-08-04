@@ -151,7 +151,10 @@ def test_build_markdown_includes_unicode_safely() -> None:
 
 
 def test_artifact_save_and_metadata_roundtrip() -> None:
-    from auditlens.reporting.artifacts import get_artifact_metadata, save_report_artifact
+    from auditlens.reporting.artifacts import (
+        get_artifact_metadata,
+        save_report_artifact,
+    )
 
     with tempfile.TemporaryDirectory() as tmp:
         meta = save_report_artifact(
@@ -167,7 +170,10 @@ def test_artifact_save_and_metadata_roundtrip() -> None:
 
 
 def test_artifact_pdf_roundtrip_from_base64() -> None:
-    from auditlens.reporting.artifacts import get_artifact_metadata, save_report_artifact
+    from auditlens.reporting.artifacts import (
+        get_artifact_metadata,
+        save_report_artifact,
+    )
 
     pdf_bytes = b"%PDF-1.4\n%\xe2\xe3\xcf\xd3\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n%%EOF\n"
     b64 = base64.b64encode(pdf_bytes).decode("ascii")
@@ -241,6 +247,13 @@ def test_project_builds_wheel_and_sdist() -> None:
         assert sdists, "expected sdist"
         whl = wheels[0]
         assert "auditlens" in whl.name.lower()
+        import zipfile
+
+        with zipfile.ZipFile(whl) as archive:
+            members = set(archive.namelist())
+        assert "auditlens/__init__.py" in members
+        assert "auditlens_server/__init__.py" in members
+        assert "auditlens_ui/__init__.py" in members
     finally:
         if dist_dir.exists():
             import shutil
@@ -291,9 +304,8 @@ def test_twine_check_passes_on_built_artifacts() -> None:
 
 def test_server_health_contract() -> None:
     pytest.importorskip("fastapi")
-    from fastapi.testclient import TestClient
-
     from auditlens_server.app import app
+    from fastapi.testclient import TestClient
 
     client = TestClient(app)
     r = client.get("/health")
@@ -303,9 +315,8 @@ def test_server_health_contract() -> None:
 
 def test_server_analyze_rejects_empty_upload() -> None:
     pytest.importorskip("fastapi")
-    from fastapi.testclient import TestClient
-
     from auditlens_server.app import app
+    from fastapi.testclient import TestClient
 
     client = TestClient(app)
     r = client.post(
@@ -318,9 +329,8 @@ def test_server_analyze_rejects_empty_upload() -> None:
 
 def test_server_upload_rejects_empty_file() -> None:
     pytest.importorskip("fastapi")
-    from fastapi.testclient import TestClient
-
     from auditlens_server.app import app
+    from fastapi.testclient import TestClient
 
     client = TestClient(app)
     r = client.post("/upload", files={"file": ("empty.csv", b"", "text/csv")})
@@ -329,9 +339,8 @@ def test_server_upload_rejects_empty_file() -> None:
 
 def test_server_analyze_task_requires_nonempty_task_description() -> None:
     pytest.importorskip("fastapi")
-    from fastapi.testclient import TestClient
-
     from auditlens_server.app import app
+    from fastapi.testclient import TestClient
 
     client = TestClient(app)
     csv_text = "sex,target\nM,1\nF,0\n"

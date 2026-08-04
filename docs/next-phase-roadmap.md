@@ -1,5 +1,10 @@
 # AuditLens — Next-Phase Roadmap
 
+> **Status note (2026-07):** Historical adoption roadmap. Items and test counts
+> below describe plans at the time they were written and must not be read as
+> current implementation or result claims. The README and CHANGELOG are the
+> current public references.
+
 **Status:** Post-refactor. Library exists, public API is shipped, tests pass.
 **Goal of this document:** A concrete, phased execution plan that takes the project from "library on disk" to "library people actually adopt." Every phase has explicit deliverables, exit criteria, and an honest justification for why it exists.
 
@@ -17,7 +22,7 @@ Three rules that override every other decision in this document:
 
 ## Phase 1 — Make the refactor real (this weekend, ~4–6 hours)
 
-**Repo status (implemented in-tree):** dependency pins in `pyproject.toml`, `AuditLensReport` Jupyter/`repr`/`to_dict()` UX, polished `examples/notebook_quickstart.ipynb` (8 cells), `docs/internal/` for archived planning docs, removed root `bias_audit_mvp_plan.html`, `.gitignore` entries for artifacts/COMPAS, PyPI name spot-check documented in `docs/internal/README.md`. **Still manual:** `git push` to `main` (§1.1).
+**Historical snapshot:** dependency pins in `pyproject.toml`, `AuditLensReport` Jupyter/`repr`/`to_dict()` UX, `examples/notebook_quickstart.ipynb`, and archived `docs/internal/` planning existed when this plan was written. Consult the current README/CHANGELOG before acting on any remaining item.
 
 **Why this exists:** Until the refactor is on GitHub with a working `pip install -e .`, everything else in this document is fiction. This phase has zero new features. It just turns the work into a real repository state.
 

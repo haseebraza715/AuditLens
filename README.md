@@ -14,16 +14,21 @@ python3 -m pip install -e .
 from auditlens import audit
 import pandas as pd
 
-df = pd.read_csv("compas-scores-two-years.csv")  # or your own CSV
+df = pd.read_csv("examples/quickstart.csv")  # committed synthetic example
 report = audit(
     df,
-    target_col="two_year_recid",
-    sensitive_cols=["race", "sex"],
+    target_col="target",
+    sensitive_cols=["group", "sex"],
 )
 print(report.summary)       # severity counts (dict)
 print(len(report.issues))   # structured AuditIssue list
 print(report.to_markdown()[:500])
 ```
+
+The example CSV is synthetic, CC0-1.0, and committed with the repository, so
+the snippet is deterministic and needs no download, account, or network access.
+A versioned example output and its provenance are in
+[`docs/examples/quickstart-result.md`](docs/examples/quickstart-result.md).
 
 In **Jupyter**, put `report` on the last line of a cell to render an **HTML table** (`_repr_html_()`). In any REPL, `repr(report)` is a short one-line summary, and `report.to_dict()` returns a JSON-friendly snapshot.
 
@@ -101,7 +106,7 @@ Or use `./run-dev.sh` after installing `.[ui]` into `.venv`.
 
 - **[`docs/next-phase-roadmap.md`](docs/next-phase-roadmap.md)** — phased adoption plan (CI, CLI, MCP, PyPI, etc.).
 - **[`examples/notebook_quickstart.ipynb`](examples/notebook_quickstart.ipynb)** — short COMPAS tutorial (run top-to-bottom in a clean kernel).
-- **[`docs/internal/`](docs/internal/)** — archived planning notes (MVP plan, layer phase write-ups).
+- **[`docs/internal/`](docs/internal/)** — historical planning notes only; not current implementation guidance.
 
 ### Install from PyPI
 
@@ -158,6 +163,11 @@ python3 -m pytest tests/
 ```
 
 Fast suite (matches CI matrix): `pytest tests/ -m "not slow and not e2e"`.
+
+The optional HTTP server is intentionally single-process: asynchronous report
+jobs are held in memory, are lost on restart, and are not shared across Uvicorn
+workers. Uploaded CSVs default to a 10 MiB / 100,000-row limit; configure
+`AUDITLENS_MAX_UPLOAD_BYTES` and `AUDITLENS_MAX_UPLOAD_ROWS` before startup.
 
 Full suite including packaging smoke and live-server Playwright checks:
 

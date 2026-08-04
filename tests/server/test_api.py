@@ -1,13 +1,10 @@
 from __future__ import annotations
 
-import io
-
 import pytest
 
 pytest.importorskip("fastapi")
-from fastapi.testclient import TestClient
-
 from auditlens_server.app import app
+from fastapi.testclient import TestClient
 
 client = TestClient(app)
 
@@ -32,6 +29,24 @@ def test_upload_preview() -> None:
     payload = response.json()
     assert payload["rows"] == 2
     assert payload["columns"] == 3
+
+
+def test_upload_byte_limit(monkeypatch) -> None:
+    monkeypatch.setenv("AUDITLENS_MAX_UPLOAD_BYTES", "7")
+    response = client.post(
+        "/upload",
+        files={"file": ("sample.csv", b"a,b\n1,2\n", "text/csv")},
+    )
+    assert response.status_code == 413
+
+
+def test_upload_row_limit(monkeypatch) -> None:
+    monkeypatch.setenv("AUDITLENS_MAX_UPLOAD_ROWS", "1")
+    response = client.post(
+        "/upload",
+        files={"file": ("sample.csv", b"a,b\n1,2\n3,4\n", "text/csv")},
+    )
+    assert response.status_code == 413
 
 
 def test_analyze_valid_request() -> None:

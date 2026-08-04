@@ -9,7 +9,6 @@ import pandas as pd
 
 from auditlens.core.audit import run_layer1_audit
 from auditlens.core.schema import AuditIssue, AuditReport
-from auditlens.exceptions import Layer2ConfigurationError, Layer2InvalidResponseError, Layer2ProviderError
 from auditlens.interpretation.schema import Layer2Report
 from auditlens.reporting.generator import build_markdown_report, build_pdf_report
 
@@ -205,22 +204,15 @@ def audit(
     if task_description is not None and str(task_description).strip():
         from auditlens.interpretation.pipeline import run_layer2_pipeline
 
-        try:
-            interpretation = run_layer2_pipeline(
-                layer1_report=layer1_report,
-                task_description=str(task_description).strip(),
-                clarification_answers=clarification_answers,
-                request_id=request_id,
-                llm_client=llm_client,
-                layer2_provider=layer2_provider,
-                layer2_model=layer2_model,
-                max_retries=max_retries,
-            )
-        except Layer2ConfigurationError:
-            raise
-        except Layer2InvalidResponseError:
-            raise
-        except Layer2ProviderError:
-            raise
+        interpretation = run_layer2_pipeline(
+            layer1_report=layer1_report,
+            task_description=str(task_description).strip(),
+            clarification_answers=clarification_answers,
+            request_id=request_id,
+            llm_client=llm_client,
+            layer2_provider=layer2_provider,
+            layer2_model=layer2_model,
+            max_retries=max_retries,
+        )
 
     return AuditLensReport(layer1_report, interpretation)

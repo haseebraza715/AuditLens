@@ -8,7 +8,9 @@ from auditlens.config import SEVERITY_ORDER, SEVERITY_THRESHOLDS
 from auditlens.core.analyzers.class_distribution import analyze_class_distribution
 from auditlens.core.analyzers.correlations import analyze_sensitive_correlations
 from auditlens.core.analyzers.missing_values import analyze_missing_values_by_group
-from auditlens.core.analyzers.subgroup_analysis import analyze_subgroup_label_distribution
+from auditlens.core.analyzers.subgroup_analysis import (
+    analyze_subgroup_label_distribution,
+)
 from auditlens.core.severity import summarize_issues
 
 

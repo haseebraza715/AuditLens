@@ -7,8 +7,10 @@ import time
 import pytest
 
 pytest.importorskip("fastapi")
+from auditlens_server.app import app
 from fastapi.testclient import TestClient
 
+from auditlens.config import clear_layer2_settings_cache
 from auditlens.interpretation.llm.base import BaseLLMClient
 from auditlens.reporting.generator import build_markdown_report, build_pdf_report
 from auditlens.reporting.visualizations import (
@@ -19,8 +21,6 @@ from auditlens.reporting.visualizations import (
     build_missingness_heatmap,
     build_severity_summary_chart,
 )
-from auditlens_server.app import app
-from auditlens.config import clear_layer2_settings_cache
 
 client = TestClient(app)
 

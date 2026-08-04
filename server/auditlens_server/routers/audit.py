@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import io
 import json
+import os
 from json import JSONDecodeError
 from pathlib import Path
 from typing import Annotated, Literal, Optional
@@ -17,20 +18,45 @@ from auditlens.core.audit import run_layer1_audit
 from auditlens.core.schema import (
     AnalyzeTaskReportResponse,
     AnalyzeTaskResponse,
-    ReportJobAccepted,
-    ReportJobStatus,
     AnalyzeTaskStoredReportComplete,
     AuditReport,
+    ReportJobAccepted,
+    ReportJobStatus,
     StoredReportArtifact,
     UploadPreview,
 )
-from auditlens.exceptions import Layer2ConfigurationError, Layer2InvalidResponseError, Layer2ProviderError
+from auditlens.exceptions import (
+    Layer2ConfigurationError,
+    Layer2InvalidResponseError,
+    Layer2ProviderError,
+)
 from auditlens.interpretation.pipeline import run_layer2_pipeline
-from auditlens.reporting.artifacts import ArtifactNotFoundError, get_artifact_metadata, save_report_artifact
-from auditlens.reporting.generator import build_markdown_report, build_pdf_report, encode_pdf_base64
+from auditlens.reporting.artifacts import (
+    ArtifactNotFoundError,
+    artifact_is_expired,
+    delete_artifact,
+    get_artifact_metadata,
+    purge_expired_artifacts,
+    save_report_artifact,
+)
+from auditlens.reporting.generator import (
+    build_markdown_report,
+    build_pdf_report,
+    encode_pdf_base64,
+)
 from auditlens.reporting.jobs import report_job_store, start_report_job
 
 router = APIRouter()
+
+
+def _upload_limit(name: str, default: int) -> int:
+    try:
+        value = int(os.getenv(name, str(default)))
+    except ValueError as exc:
+        raise RuntimeError(f"{name} must be an integer") from exc
+    if value <= 0:
+        raise RuntimeError(f"{name} must be positive")
+    return value
 
 
 def _layer1_for_response(layer1_report: dict[str, object]) -> dict[str, object]:
@@ -106,21 +132,32 @@ def _normalize_sensitive_columns(raw_values: list[str]) -> list[str]:
     return normalized
 
 
+def _read_upload_bounded(file: UploadFile) -> bytes:
+    """Read at most limit + 1 bytes into application memory.
+
+    The extra byte lets `_read_csv_from_bytes` detect an oversized upload and
+    return 413 without this handler ever buffering the full body.
+    """
+    max_bytes = _upload_limit("AUDITLENS_MAX_UPLOAD_BYTES", 10 * 1024 * 1024)
+    return file.file.read(max_bytes + 1)
+
+
 def _read_csv_from_upload(file: UploadFile) -> pd.DataFrame:
-    try:
-        raw_bytes = file.file.read()
-        if not raw_bytes:
-            raise HTTPException(status_code=422, detail="Uploaded CSV is empty")
-        return pd.read_csv(io.BytesIO(raw_bytes))
-    except (ParserError, EmptyDataError):
-        raise HTTPException(status_code=422, detail="Malformed CSV file")
+    return _read_csv_from_bytes(_read_upload_bounded(file))
 
 
 def _read_csv_from_bytes(raw_bytes: bytes) -> pd.DataFrame:
     try:
         if not raw_bytes:
             raise HTTPException(status_code=422, detail="Uploaded CSV is empty")
-        return pd.read_csv(io.BytesIO(raw_bytes))
+        max_bytes = _upload_limit("AUDITLENS_MAX_UPLOAD_BYTES", 10 * 1024 * 1024)
+        if len(raw_bytes) > max_bytes:
+            raise HTTPException(status_code=413, detail="Uploaded CSV exceeds byte limit")
+        df = pd.read_csv(io.BytesIO(raw_bytes))
+        max_rows = _upload_limit("AUDITLENS_MAX_UPLOAD_ROWS", 100_000)
+        if len(df) > max_rows:
+            raise HTTPException(status_code=413, detail="Uploaded CSV exceeds row limit")
+        return df
     except (ParserError, EmptyDataError):
         raise HTTPException(status_code=422, detail="Malformed CSV file")
 
@@ -144,7 +181,7 @@ def _run_layer2_from_form(
     clarification_answers: Optional[str],
     allow_provider_fallback: bool = False,
 ) -> tuple[dict[str, object], dict[str, object]]:
-    raw_bytes = file.file.read()
+    raw_bytes = _read_upload_bounded(file)
     df = _read_csv_from_bytes(raw_bytes)
 
     normalized_sensitive = _normalize_sensitive_columns(sensitive_columns)
@@ -476,6 +513,10 @@ def analyze_task_report_store(
         )
 
     artifact = response["report_artifact"]
+    # Opportunistic sweep: storing a new artifact is the natural moment to
+    # drop expired ones, keeping the artifact directory bounded without a
+    # background scheduler.
+    purge_expired_artifacts()
     metadata = save_report_artifact(
         artifact_format=artifact["format"],
         filename=artifact["filename"],
@@ -495,12 +536,20 @@ def analyze_task_report_store(
     }
 
 
-@router.get("/reports/{artifact_id}", response_model=StoredReportArtifact)
-def get_report_artifact(artifact_id: str) -> StoredReportArtifact:
+def _get_live_artifact_metadata(artifact_id: str) -> dict[str, object]:
     try:
         metadata = get_artifact_metadata(artifact_id)
     except ArtifactNotFoundError:
         raise HTTPException(status_code=404, detail=f"Artifact '{artifact_id}' not found")
+    if artifact_is_expired(metadata):
+        delete_artifact(artifact_id)
+        raise HTTPException(status_code=410, detail=f"Artifact '{artifact_id}' has expired")
+    return metadata
+
+
+@router.get("/reports/{artifact_id}", response_model=StoredReportArtifact)
+def get_report_artifact(artifact_id: str) -> StoredReportArtifact:
+    metadata = _get_live_artifact_metadata(artifact_id)
     return {
         "artifact_id": metadata["artifact_id"],
         "format": metadata["format"],
@@ -513,10 +562,7 @@ def get_report_artifact(artifact_id: str) -> StoredReportArtifact:
 
 @router.get("/reports/{artifact_id}/download")
 def download_report_artifact(artifact_id: str) -> FileResponse:
-    try:
-        metadata = get_artifact_metadata(artifact_id)
-    except ArtifactNotFoundError:
-        raise HTTPException(status_code=404, detail=f"Artifact '{artifact_id}' not found")
+    metadata = _get_live_artifact_metadata(artifact_id)
 
     file_path = Path(str(metadata["storage_path"]))
     if not file_path.exists():
@@ -539,7 +585,7 @@ def create_report_job(
     report_format: Annotated[Literal["markdown", "pdf_base64"], Form()] = "markdown",
     store_artifact: Annotated[bool, Form()] = True,
 ) -> ReportJobAccepted:
-    raw_bytes = file.file.read()
+    raw_bytes = _read_upload_bounded(file)
     job = report_job_store.create_job()
     job_id = str(job["job_id"])
 
@@ -568,6 +614,7 @@ def create_report_job(
             "report_artifact": artifact,
         }
         if store_artifact:
+            purge_expired_artifacts()
             metadata = save_report_artifact(
                 artifact_format=str(artifact["format"]),
                 filename=str(artifact["filename"]),

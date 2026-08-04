@@ -156,8 +156,8 @@ def render_final_report_section() -> None:
     reproducibility = final_report.get("reproducibility", {}) or {}
     st.caption(
         "Layer 2 provider: "
-        f"{str(reproducibility.get('layer2_provider', 'unknown'))} | "
-        f"Model: {str(reproducibility.get('layer2_model', 'unknown'))}"
+        f"{reproducibility.get('layer2_provider', 'unknown')!s} | "
+        f"Model: {reproducibility.get('layer2_model', 'unknown')!s}"
     )
 
     tab_overview, tab_findings, tab_charts, tab_report = st.tabs(

@@ -7,7 +7,6 @@ from typing import Literal
 
 from auditlens.exceptions import Layer2ConfigurationError
 
-
 SEVERITY_THRESHOLDS = {
     "imbalance_ratio": {"medium": 1.5, "high": 3.0},
     "cramers_v": {"medium": 0.1, "high": 0.3},

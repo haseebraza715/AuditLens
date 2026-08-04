@@ -6,7 +6,6 @@ import pandas as pd
 
 from auditlens.core.audit import run_layer1_audit
 
-
 ADULT_COLUMNS = [
     "age",
     "workclass",

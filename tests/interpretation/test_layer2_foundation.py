@@ -5,11 +5,11 @@ import json
 import pytest
 
 pytest.importorskip("fastapi")
+from auditlens_server.app import app
 from fastapi.testclient import TestClient
 
-from auditlens.interpretation.llm.base import BaseLLMClient
-from auditlens_server.app import app
 from auditlens.config import clear_layer2_settings_cache, get_layer2_settings
+from auditlens.interpretation.llm.base import BaseLLMClient
 
 client = TestClient(app)
 

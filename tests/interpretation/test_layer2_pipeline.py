@@ -7,15 +7,15 @@ import time
 import pytest
 
 pytest.importorskip("fastapi")
+from auditlens_server.app import app
 from fastapi.testclient import TestClient
 
-from auditlens.interpretation.pipeline import run_layer2_pipeline
+from auditlens.config import clear_layer2_settings_cache
 from auditlens.exceptions import Layer2ProviderError
 from auditlens.interpretation.llm.base import BaseLLMClient
 from auditlens.interpretation.nodes.analyze import analyze_node
 from auditlens.interpretation.nodes.parse import parse_node
-from auditlens_server.app import app
-from auditlens.config import clear_layer2_settings_cache
+from auditlens.interpretation.pipeline import run_layer2_pipeline
 
 client = TestClient(app)
 

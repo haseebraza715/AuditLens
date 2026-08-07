@@ -145,6 +145,18 @@ def test_demographic_parity_tiebreak_prefers_conventional_positive() -> None:
     assert issues[0]["metrics"]["group_sizes"] == {"F": 4, "M": 4}
 
 
+def test_correlation_justification_names_actual_statistic() -> None:
+    from auditlens.core.analyzers.correlations import analyze_sensitive_correlations
+
+    df = pd.DataFrame(
+        {"sex": ["M"] * 4 + ["F"] * 4, "target": [0, 1, 1, 1, 0, 0, 0, 1]}
+    )
+    issues = analyze_sensitive_correlations(df, "target", ["sex"])
+    assert issues
+    assert issues[0]["metrics"]["method"] == "point_biserial"
+    assert "point_biserial=" in issues[0]["justification"]
+
+
 def test_build_markdown_includes_unicode_safely() -> None:
     from auditlens.reporting.generator import build_markdown_report
 

@@ -6,8 +6,16 @@ import pandas as pd
 
 from auditlens.core.severity import score_threshold_metric
 
+_CONVENTIONAL_POSITIVE_LABELS = ("1", "1.0", "true", "yes", "positive", "y", "pass", "accepted")
+
 
 def _resolve_positive_class(target: pd.Series) -> str:
+    """Pick the "positive" class for demographic-parity rate computation.
+
+    Convention: prefer the minority class (most informative), then fall back
+    to a conventional positive label (e.g. "1", "true", "yes") when classes
+    tie, and finally to lexicographic order for full determinism.
+    """
     normalized = target.fillna("__MISSING__").astype(str)
     counts = normalized.value_counts(dropna=False)
     if len(counts) == 0:
@@ -17,6 +25,11 @@ def _resolve_positive_class(target: pd.Series) -> str:
 
     min_count = counts.min()
     candidates = sorted(str(label) for label, count in counts.items() if count == min_count)
+    if len(candidates) == 1:
+        return candidates[0]
+    for label in _CONVENTIONAL_POSITIVE_LABELS:
+        if label in candidates:
+            return label
     return candidates[0]
 
 

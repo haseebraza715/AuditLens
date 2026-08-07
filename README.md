@@ -6,7 +6,9 @@
 
 **A statistical audit of your dataset before you trust an LLM's read of it, with shareable reports.**
 
-![AuditLens demo](docs/demo.gif)
+<video controls autoplay muted loop playsinline width="100%" src="https://github.com/haseebraza715/AuditLens/raw/main/docs/demo.mp4"></video>
+
+Prefer a GIF? [docs/demo.gif](docs/demo.gif).
 
 ## Try it in 60 seconds
 

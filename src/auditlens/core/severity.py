@@ -10,7 +10,10 @@ def score_threshold_metric(
     severity_thresholds: dict[str, dict[str, float]] | None = None,
 ) -> tuple[str, str]:
     table = severity_thresholds if severity_thresholds is not None else SEVERITY_THRESHOLDS
-    thresholds = table[metric_name]
+    # All correlation statistics (point_biserial, spearman, pearson, cramers_v)
+    # share the same magnitude thresholds; fall back so custom threshold tables
+    # that only define "cramers_v" keep working.
+    thresholds = table.get(metric_name) or table["cramers_v"]
     high = thresholds["high"]
     medium = thresholds["medium"]
 

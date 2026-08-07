@@ -37,6 +37,16 @@ def test_bounded_reader_never_requests_more_than_limit_plus_one(monkeypatch) -> 
     assert len(raw) == 17
 
 
+def test_report_route_rejects_non_uuid_artifact_id(monkeypatch, tmp_path) -> None:
+    monkeypatch.setenv("AUDITLENS_ARTIFACT_DIR", str(tmp_path))
+
+    response = client.get("/reports/../../etc/passwd")
+    assert response.status_code == 404
+
+    response = client.get("/reports/not-a-uuid/download")
+    assert response.status_code == 404
+
+
 def test_expired_artifact_returns_410_and_is_removed(tmp_path, monkeypatch) -> None:
     monkeypatch.setenv("AUDITLENS_ARTIFACT_DIR", str(tmp_path))
     from auditlens.reporting.artifacts import save_report_artifact

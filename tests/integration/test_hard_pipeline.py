@@ -157,6 +157,21 @@ def test_correlation_justification_names_actual_statistic() -> None:
     assert "point_biserial=" in issues[0]["justification"]
 
 
+def test_artifact_metadata_rejects_non_uuid_ids(tmp_path) -> None:
+    from auditlens.reporting.artifacts import (
+        ArtifactNotFoundError,
+        get_artifact_metadata,
+    )
+
+    with pytest.raises(ArtifactNotFoundError):
+        get_artifact_metadata("../../etc/passwd", artifact_dir=tmp_path)
+    with pytest.raises(ArtifactNotFoundError):
+        get_artifact_metadata("not-a-uuid", artifact_dir=tmp_path)
+
+
+# --- Reporting ---
+
+
 def test_build_markdown_includes_unicode_safely() -> None:
     from auditlens.reporting.generator import build_markdown_report
 

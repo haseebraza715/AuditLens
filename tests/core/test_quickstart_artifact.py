@@ -20,5 +20,41 @@ def test_committed_quickstart_is_reproducible() -> None:
         sensitive_cols=["group", "sex"],
     )
     assert report.status is None  # Layer 1-only reports do not claim Layer 2 status.
-    assert isinstance(report.summary, dict)
+    assert report.summary == {
+        "total_issues": 2,
+        "high_severity": 2,
+        "medium_severity": 0,
+        "low_severity": 0,
+    }
     assert len(report.issues) == 2
+
+    by_id = {issue.issue_id: issue for issue in report.issues}
+    corr = by_id["correlation_sex_target"]
+    assert corr.type == "sensitive_correlation"
+    assert corr.severity == "high"
+    assert corr.metrics["method"] == "point_biserial"
+    assert corr.metrics["sample_size"] == 8
+    assert abs(corr.metrics["absolute_correlation"] - 0.5) < 1e-9
+
+    parity = by_id["demographic_parity_sex_target"]
+    assert parity.type == "demographic_parity_gap"
+    assert parity.severity == "high"
+    assert parity.metrics["positive_class"] == "1"
+    assert abs(parity.metrics["demographic_parity_gap"] - 0.5) < 1e-9
+    assert abs(parity.metrics["positive_rates"]["F"] - 0.25) < 1e-9
+    assert abs(parity.metrics["positive_rates"]["M"] - 0.75) < 1e-9
+    assert parity.metrics["sample_size"] == 8
+
+
+def test_quickstart_markdown_matches_committed_example() -> None:
+    path = ROOT / "examples" / "quickstart.csv"
+    report = audit(
+        pd.read_csv(path),
+        target_col="target",
+        sensitive_cols=["group", "sex"],
+    )
+    markdown = report.to_markdown()
+    committed = (ROOT / "docs" / "examples" / "quickstart-result.md").read_text(encoding="utf-8")
+    assert "Total issues: `2`" in committed
+    assert "Demographic parity gap for 'sex' is 0.500 for target 'target'" in committed
+    assert markdown in committed

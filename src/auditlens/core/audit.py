@@ -12,6 +12,7 @@ from auditlens.core.analyzers.subgroup_analysis import (
     analyze_subgroup_label_distribution,
 )
 from auditlens.core.severity import summarize_issues
+from auditlens.exceptions import AuditLensError
 
 
 def sort_issues(issues: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -29,6 +30,17 @@ def run_layer1_audit(
     severity_thresholds: dict[str, dict[str, float]] | None = None,
 ) -> dict[str, Any]:
     thresholds = severity_thresholds if severity_thresholds is not None else SEVERITY_THRESHOLDS
+
+    if target_col not in df.columns:
+        raise AuditLensError(
+            f"target_col '{target_col}' not found in DataFrame columns: {list(df.columns)}"
+        )
+    missing_sensitive = [col for col in sensitive_cols if col not in df.columns]
+    if missing_sensitive:
+        raise AuditLensError(
+            f"sensitive_cols not found in DataFrame columns: {missing_sensitive}"
+        )
+
     issues: list[dict[str, Any]] = []
 
     issues.extend(analyze_class_distribution(df, target_col, severity_thresholds=thresholds))

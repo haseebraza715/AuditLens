@@ -75,7 +75,7 @@ def test_audit_custom_severity_thresholds_propagate() -> None:
     assert report_loose.summary["high_severity"] <= report_default.summary["high_severity"]
 
 
-def test_audit_lens_report_to_pdf_requires_layer2() -> None:
+def test_audit_lens_report_to_pdf_works_for_layer1_only() -> None:
     from auditlens import audit
 
     df = pd.DataFrame({"y": [0, 1, 0, 1], "g": ["a", "b", "a", "b"]})
@@ -83,8 +83,9 @@ def test_audit_lens_report_to_pdf_requires_layer2() -> None:
     with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
         path = tmp.name
     try:
-        with pytest.raises(ValueError, match="PDF export requires"):
-            report.to_pdf(path)
+        report.to_pdf(path)
+        assert Path(path).stat().st_size > 1000
+        assert Path(path).read_bytes().startswith(b"%PDF")
     finally:
         Path(path).unlink(missing_ok=True)
 
@@ -110,9 +111,6 @@ def test_audit_unicode_columns_and_values() -> None:
     report = audit(df, target_col="目标", sensitive_cols=["组"])
     assert report.summary["total_issues"] >= 0
     assert "组" in repr(report.to_dict()["layer1_report"]["dataset_info"]["sensitive_columns"])
-
-
-# --- Reporting ---
 
 
 def test_build_markdown_includes_unicode_safely() -> None:

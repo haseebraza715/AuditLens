@@ -101,8 +101,10 @@ def analyze_sensitive_correlations(
             method, score = _continuous_corr(clean_sensitive, clean_target)
 
         abs_score = abs(float(score))
+        # Thresholds live under "cramers_v" in the shared table; pass the real
+        # method name so the justification text is honest about the statistic.
         severity, justification = score_threshold_metric(
-            "cramers_v", abs_score, severity_thresholds=severity_thresholds
+            method, abs_score, severity_thresholds=severity_thresholds
         )
         if severity == "low":
             continue

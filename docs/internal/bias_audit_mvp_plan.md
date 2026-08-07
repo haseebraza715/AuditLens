@@ -1,4 +1,4 @@
-# Bias Audit Framework — Full MVP Plan
+# Bias Audit Framework: Full MVP Plan
 ### An agentic audit framework for ML datasets combining statistical analysis with LLM-based interpretation
 
 ---
@@ -7,7 +7,7 @@
 
 ### What this system does
 
-Most bias detection tools treat bias as a statistical property of a dataset in isolation. This system treats bias as **contextual** — a pattern is only a problem if it impacts the specific task the model is being trained for. A class imbalance that is harmless for one task can be catastrophic for another.
+Most bias detection tools treat bias as a statistical property of a dataset in isolation. This system treats bias as **contextual**: a pattern is only a problem if it impacts the specific task the model is being trained for. A class imbalance that is harmless for one task can be catastrophic for another.
 
 The system takes two inputs:
 1. A dataset (CSV or tabular file)
@@ -20,15 +20,15 @@ It then:
 
 ### Why it matters
 
-Bias in ML datasets causes real harm — biased hiring models, biased loan approval systems, biased recidivism predictions. The problem is well-known. The tooling to audit for it in a task-aware, actionable way is not.
+Bias in ML datasets causes real harm: biased hiring models, biased loan approval systems, biased recidivism predictions. The problem is well-known. The tooling to audit for it in a task-aware, actionable way is not.
 
-This system fills that gap by combining the audibility of statistical analysis with the reasoning power of LLMs to explain *what the bias means* and *how to fix it* — not just that it exists.
+This system fills that gap by combining the audibility of statistical analysis with the reasoning power of LLMs to explain *what the bias means* and *how to fix it*: not just that it exists.
 
 ### Core design principles
 
 - **Task-aware**: every finding is evaluated relative to the user's specific ML task
 - **Severity-ranked**: issues are scored and ranked, not dumped as a flat list
-- **Auditable**: Layer 1 is fully deterministic — the statistical foundation can always be independently verified
+- **Auditable**: Layer 1 is fully deterministic: the statistical foundation can always be independently verified
 - **Transparent about limitations**: the system includes explicit "human review recommended" notices; the interpretation layer can be wrong
 - **Reproducible**: every report includes the exact parameters and methods used
 
@@ -56,7 +56,7 @@ User uploads CSV + writes task description
               │
               ▼
 ┌─────────────────────────────────────┐
-│         Layer 1 — Statistical        │
+│         Layer 1: Statistical        │
 │         Analysis (Python)            │
 │                                      │
 │  • Class distribution & imbalance    │
@@ -71,7 +71,7 @@ User uploads CSV + writes task description
                    │
                    ▼
 ┌─────────────────────────────────────┐
-│       Layer 2 — Agent Pipeline       │
+│       Layer 2: Agent Pipeline       │
 │       (LangGraph + LLM)              │
 │                                      │
 │  parse → analyze → interpret         │
@@ -88,7 +88,7 @@ User uploads CSV + writes task description
                    │
                    ▼
 ┌─────────────────────────────────────┐
-│       Layer 3 — Report               │
+│       Layer 3: Report               │
 │                                      │
 │  • Executive summary                 │
 │  • Ranked issues by severity         │
@@ -163,7 +163,7 @@ Three well-understood datasets with documented biases are used to validate the s
 
 ### COMPAS (Correctional Offender Management Profiling for Alternative Sanctions)
 - **Task**: Predict likelihood of recidivism (re-offending)
-- **Known bias**: Racial disparity — Black defendants were nearly twice as likely to be falsely flagged as high-risk compared to white defendants
+- **Known bias**: Racial disparity: Black defendants were nearly twice as likely to be falsely flagged as high-risk compared to white defendants
 - **What the system should catch**: Racial imbalance in label distribution, high correlation between race and predicted risk score, differential false positive rates across groups
 
 ### Adult Income Dataset (UCI)
@@ -190,17 +190,17 @@ Each detected issue is assigned a severity score on three dimensions:
 
 **Severity levels:**
 
-- **High** — Issue is statistically significant, directly relevant to the task, and poses clear downstream harm risk. Requires mitigation before training.
-- **Medium** — Issue is present and task-relevant but may not cause severe harm depending on deployment context. Mitigation recommended.
-- **Low** — Issue is statistically detectable but likely to have limited impact on the specific task. Note for awareness.
+- **High**: Issue is statistically significant, directly relevant to the task, and poses clear downstream harm risk. Requires mitigation before training.
+- **Medium**: Issue is present and task-relevant but may not cause severe harm depending on deployment context. Mitigation recommended.
+- **Low**: Issue is statistically detectable but likely to have limited impact on the specific task. Note for awareness.
 
 ---
 
 ---
 
-# Week 1 — Build the Statistical Analysis Layer (Layer 1)
+# Week 1: Build the Statistical Analysis Layer (Layer 1)
 
-**Dates:** April 4 – 10
+**Dates:** April 4 - 10
 **Goal:** A fully working deterministic statistical auditing engine that accepts a CSV file and returns a structured JSON report containing bias metrics, detected issues, and severity scores. No LLM involved.
 
 ---
@@ -217,7 +217,7 @@ Layer 1 is the foundation of the entire system. It must be:
 
 ## Day-by-Day Breakdown
 
-### Day 1 (Friday Apr 4) — Project setup + API skeleton
+### Day 1 (Friday Apr 4): Project setup + API skeleton
 
 **Tasks:**
 1. Create the project folder structure as defined above
@@ -233,8 +233,8 @@ Layer 1 is the foundation of the entire system. It must be:
    pydantic
    ```
 3. Build a minimal FastAPI app in `main.py` with:
-   - `POST /upload` — accepts a CSV file, returns column names and row count
-   - `GET /health` — basic health check endpoint
+   - `POST /upload`: accepts a CSV file, returns column names and row count
+   - `GET /health`: basic health check endpoint
 4. Write a Pydantic schema for the audit output JSON (define it before building the analysis so the structure is locked in)
 5. Test with a sample CSV using `curl` or Postman
 
@@ -272,7 +272,7 @@ Layer 1 is the foundation of the entire system. It must be:
 
 ---
 
-### Day 2 (Saturday Apr 5) — Class distribution + imbalance detection
+### Day 2 (Saturday Apr 5): Class distribution + imbalance detection
 
 **File:** `layer1/class_distribution.py`
 
@@ -294,7 +294,7 @@ gini_impurity = 1 - sum(p**2 for p in proportions)
 
 ---
 
-### Day 3 (Sunday Apr 6) — Missing value analysis by group
+### Day 3 (Sunday Apr 6): Missing value analysis by group
 
 **File:** `layer1/missing_values.py`
 
@@ -304,25 +304,25 @@ gini_impurity = 1 - sum(p**2 for p in proportions)
 - Flag as issue if missingness rate difference between any two groups exceeds threshold (default: 5 percentage points)
 
 **Why it matters for bias:**
-Differential missing data is a hidden form of bias. If the system is trained on records where one group's data is systematically incomplete, the model will have worse performance for that group — even if class distribution looks balanced.
+Differential missing data is a hidden form of bias. If the system is trained on records where one group's data is systematically incomplete, the model will have worse performance for that group: even if class distribution looks balanced.
 
 **Test:** Manually introduce missing values in a dummy dataset at different rates for different groups, verify detection.
 
 ---
 
-### Day 4 (Monday Apr 7) — Sensitive attribute correlations
+### Day 4 (Monday Apr 7): Sensitive attribute correlations
 
 **File:** `layer1/correlations.py`
 
 **What to implement:**
 - Measure correlation between each sensitive attribute and the target label
-- For categorical–categorical: Cramér's V
-- For binary categorical–continuous: point-biserial correlation
-- For continuous–continuous: Pearson or Spearman
+- For categorical-categorical: Cramér's V
+- For binary categorical-continuous: point-biserial correlation
+- For continuous-continuous: Pearson or Spearman
 - Flag as issue if Cramér's V or |r| > 0.1 → medium; > 0.3 → high
 
 **Why it matters:**
-If a sensitive attribute is strongly correlated with the target label, the model can use it (or proxies for it) to make predictions — even if the sensitive attribute is not explicitly used as a feature.
+If a sensitive attribute is strongly correlated with the target label, the model can use it (or proxies for it) to make predictions: even if the sensitive attribute is not explicitly used as a feature.
 
 **Formula for Cramér's V:**
 ```
@@ -332,7 +332,7 @@ where chi2 is the chi-squared statistic, n is sample size, r and c are number of
 
 ---
 
-### Day 5 (Tuesday Apr 8) — Subgroup label distributions + demographic parity
+### Day 5 (Tuesday Apr 8): Subgroup label distributions + demographic parity
 
 **File:** `layer1/subgroup_analysis.py`
 
@@ -350,7 +350,7 @@ Demographic parity gap = 19.0% → HIGH severity
 
 ---
 
-### Day 6 (Wednesday Apr 9) — Severity scoring + full pipeline wiring
+### Day 6 (Wednesday Apr 9): Severity scoring + full pipeline wiring
 
 **File:** `layer1/severity_scorer.py` + update `routers/audit.py`
 
@@ -371,7 +371,7 @@ SEVERITY_THRESHOLDS = {
 
 ---
 
-### Day 7 (Thursday Apr 10) — Testing + smoke test on Adult Income
+### Day 7 (Thursday Apr 10): Testing + smoke test on Adult Income
 
 **Tasks:**
 1. Write unit tests in `tests/test_layer1.py` for each module
@@ -396,16 +396,16 @@ A working `POST /analyze` endpoint that accepts any tabular CSV and returns a st
 
 ---
 
-# Week 2 — Build the Agent Interpretation Pipeline (Layer 2)
+# Week 2: Build the Agent Interpretation Pipeline (Layer 2)
 
-**Dates:** April 11 – 17
+**Dates:** April 11 - 17
 **Goal:** An LLM-based agentic pipeline built with LangGraph that takes Layer 1's JSON output + the user's task description and produces task-aware bias interpretation, downstream impact reasoning, and mitigation recommendations with implementation code.
 
 ---
 
 ## What to build this week
 
-Layer 2 is what differentiates this system from every other bias tool. It does not just report metrics — it explains what those metrics mean for the specific ML task the user is building.
+Layer 2 is what differentiates this system from every other bias tool. It does not just report metrics: it explains what those metrics mean for the specific ML task the user is building.
 
 The pipeline is structured as a LangGraph state machine with five nodes:
 
@@ -438,13 +438,13 @@ class AuditState(TypedDict):
 
 ## Day-by-Day Breakdown
 
-### Day 1 (Friday Apr 11) — Add task input to API + LangGraph scaffold
+### Day 1 (Friday Apr 11): Add task input to API + LangGraph scaffold
 
 **Tasks:**
 1. Update the `/analyze` endpoint to accept both a file and a `task_description` string
 2. Install LangGraph: `pip install langgraph langchain langchain-openai`
 3. Set up API key handling in `config.py` using environment variables
-4. Create `layer2/agent.py` with the state graph definition — define all five nodes as placeholder functions that just pass state through
+4. Create `layer2/agent.py` with the state graph definition: define all five nodes as placeholder functions that just pass state through
 5. Wire the graph: `parse → analyze → interpret → recommend → report`
 6. Add a conditional edge after `analyze`: if clarification is needed, route to a `clarify` node before `interpret`
 
@@ -472,13 +472,13 @@ workflow.add_edge("report", END)
 
 ---
 
-### Day 2 (Saturday Apr 12) — Parse node + Analyze node
+### Day 2 (Saturday Apr 12): Parse node + Analyze node
 
 **Parse node** (`layer2/nodes/parse.py`):
 - Takes the raw Layer 1 JSON
 - Extracts: list of issues sorted by severity, target column, sensitive columns, dataset size
 - Structures this into a clean `parsed_issues` list for downstream nodes
-- No LLM call — pure Python
+- No LLM call: pure Python
 
 **Analyze node** (`layer2/nodes/analyze.py`):
 - LLM call #1: task understanding
@@ -504,7 +504,7 @@ workflow.add_edge("report", END)
 
 ---
 
-### Day 3 (Sunday Apr 13) — Interpret node (most important node)
+### Day 3 (Sunday Apr 13): Interpret node (most important node)
 
 **File:** `layer2/nodes/interpret.py`
 
@@ -541,23 +541,23 @@ For this issue, provide:
 Be specific. Ground your reasoning in the task context. Avoid generic statements about bias.
 ```
 
-**Critical note:** Spend time on this prompt. Iterate it against the Adult Income dataset with the task "predict income > $50k" and verify it produces reasoning that is specific and accurate — not generic LLM boilerplate.
+**Critical note:** Spend time on this prompt. Iterate it against the Adult Income dataset with the task "predict income > $50k" and verify it produces reasoning that is specific and accurate: not generic LLM boilerplate.
 
 ---
 
-### Day 4 (Monday Apr 14) — Recommend node
+### Day 4 (Monday Apr 14): Recommend node
 
 **File:** `layer2/nodes/recommend.py`
 
 For each interpreted issue, generate ranked mitigation strategies with implementation code.
 
 **Categories of mitigations to cover:**
-1. **Resampling** — oversample minority class, undersample majority class, SMOTE
-2. **Reweighting** — assign sample weights to balance group representation
-3. **Data collection** — recommend collecting more data for underrepresented groups
-4. **Feature engineering** — remove proxy features that encode sensitive attributes
-5. **Algorithmic** — fairness-aware algorithms (e.g. adversarial debiasing, calibrated equal odds)
-6. **Post-processing** — threshold adjustment per group
+1. **Resampling**: oversample minority class, undersample majority class, SMOTE
+2. **Reweighting**: assign sample weights to balance group representation
+3. **Data collection**: recommend collecting more data for underrepresented groups
+4. **Feature engineering**: remove proxy features that encode sensitive attributes
+5. **Algorithmic**: fairness-aware algorithms (e.g. adversarial debiasing, calibrated equal odds)
+6. **Post-processing**: threshold adjustment per group
 
 For each mitigation, provide:
 - When to use it (pros/cons given the task context)
@@ -578,7 +578,7 @@ print(f"Resampled class distribution: {Counter(y_resampled)}")
 
 ---
 
-### Day 5 (Tuesday Apr 15) — Clarifying questions logic
+### Day 5 (Tuesday Apr 15): Clarifying questions logic
 
 **What to implement:**
 - In the `analyze` node, after extracting `task_context`, check if the task description is ambiguous
@@ -586,13 +586,13 @@ print(f"Resampled class distribution: {Counter(y_resampled)}")
   - Task type cannot be determined
   - Sensitive columns are not identifiable from context
   - Stakes level is unclear
-- If ambiguous: set `needs_clarification = True`, populate `clarifying_questions` with 1–2 targeted questions
+- If ambiguous: set `needs_clarification = True`, populate `clarifying_questions` with 1-2 targeted questions
 - For MVP: surface these questions in the Streamlit UI and let the user respond before continuing
-- Keep this simple — the goal is to ask one clarifying question max, not build a full multi-turn chat
+- Keep this simple: the goal is to ask one clarifying question max, not build a full multi-turn chat
 
 ---
 
-### Day 6 (Wednesday Apr 16) — Report node + agent wiring
+### Day 6 (Wednesday Apr 16): Report node + agent wiring
 
 **File:** `layer2/nodes/report.py`
 
@@ -620,7 +620,7 @@ Update `/analyze` endpoint to run Layer 1 → Layer 2 in sequence and return the
 
 ---
 
-### Day 7 (Thursday Apr 17) — Basic Streamlit UI + end-to-end test
+### Day 7 (Thursday Apr 17): Basic Streamlit UI + end-to-end test
 
 **File:** `frontend/app.py`
 
@@ -633,7 +633,7 @@ Build a minimal but functional Streamlit interface:
 - Show severity badges (high/medium/low) next to each issue
 - Show interpretation and mitigation per issue
 
-This does not need to be polished this week — functional is the goal.
+This does not need to be polished this week: functional is the goal.
 
 **End-to-end test:**
 1. Upload the Adult Income dataset
@@ -654,22 +654,22 @@ End-to-end working system in the browser. User uploads a dataset, describes thei
 
 ---
 
-# Week 3 — Report Generation + Deployment (Layer 3)
+# Week 3: Report Generation + Deployment (Layer 3)
 
-**Dates:** April 18 – 24
+**Dates:** April 18 - 24
 **Goal:** A downloadable, professional-quality PDF/markdown report and a live public deployment on Hugging Face Spaces.
 
 ---
 
 ## What to build this week
 
-Layer 3 takes the structured `final_report` dict from Layer 2 and produces a human-readable document that can be downloaded and shared. The system is also deployed publicly this week — that's the milestone that makes it real and shareable.
+Layer 3 takes the structured `final_report` dict from Layer 2 and produces a human-readable document that can be downloaded and shared. The system is also deployed publicly this week: that's the milestone that makes it real and shareable.
 
 ---
 
 ## Day-by-Day Breakdown
 
-### Day 1 (Friday Apr 18) — Report template design
+### Day 1 (Friday Apr 18): Report template design
 
 **File:** `layer3/report_generator.py`
 
@@ -683,7 +683,7 @@ Define the report structure before writing any code:
    - System version
 
 2. Executive summary
-   - 2–3 sentences: what was found, overall risk level
+   - 2-3 sentences: what was found, overall risk level
    - Summary table: N issues found, X high severity, Y medium, Z low
 
 3. Dataset overview
@@ -716,17 +716,17 @@ Define the report structure before writing any code:
 
 ---
 
-### Day 2 (Saturday Apr 19) — Visualizations
+### Day 2 (Saturday Apr 19): Visualizations
 
 **File:** `layer3/visualizations.py`
 
 Build chart-generating functions that produce matplotlib figures to be embedded in the report:
 
-1. **Class distribution bar chart** — count of each target class, colored by severity
-2. **Demographic parity chart** — grouped bar chart showing positive label rate per subgroup per sensitive attribute
-3. **Correlation heatmap** — Cramér's V between all sensitive attributes and the target label
-4. **Missing value chart** — heatmap showing missingness rates across groups
-5. **Severity summary chart** — horizontal bar chart of all issues sorted by severity
+1. **Class distribution bar chart**: count of each target class, colored by severity
+2. **Demographic parity chart**: grouped bar chart showing positive label rate per subgroup per sensitive attribute
+3. **Correlation heatmap**: Cramér's V between all sensitive attributes and the target label
+4. **Missing value chart**: heatmap showing missingness rates across groups
+5. **Severity summary chart**: horizontal bar chart of all issues sorted by severity
 
 All charts should:
 - Use a clean, minimal style (`plt.style.use('seaborn-v0_8-whitegrid')`)
@@ -736,9 +736,9 @@ All charts should:
 
 ---
 
-### Day 3 (Sunday Apr 20) — PDF generation
+### Day 3 (Sunday Apr 20): PDF generation
 
-**Choice:** Use WeasyPrint (HTML → PDF) rather than ReportLab — it's much easier to style and produces cleaner output.
+**Choice:** Use WeasyPrint (HTML → PDF) rather than ReportLab: it's much easier to style and produces cleaner output.
 
 **Approach:**
 1. Build an HTML template for the report using Jinja2
@@ -755,7 +755,7 @@ pip install weasyprint jinja2
 
 ---
 
-### Day 4 (Monday Apr 21) — Polish the Streamlit UI
+### Day 4 (Monday Apr 21): Polish the Streamlit UI
 
 Make the Streamlit app feel like a real product:
 
@@ -768,7 +768,7 @@ Make the Streamlit app feel like a real product:
 
 ---
 
-### Day 5 (Tuesday Apr 22) — Dockerize the application
+### Day 5 (Tuesday Apr 22): Dockerize the application
 
 Create a `Dockerfile` for deployment:
 
@@ -797,14 +797,14 @@ Test the Docker build locally before pushing.
 
 ---
 
-### Day 6 (Wednesday Apr 23) — Deploy to Hugging Face Spaces
+### Day 6 (Wednesday Apr 23): Deploy to Hugging Face Spaces
 
 1. Create a new Hugging Face Space (type: Docker or Streamlit)
 2. Add API keys via HF Spaces secrets (Settings → Variables and secrets)
 3. Push the repository
 4. Test the live deployment with a real dataset upload
 5. Verify PDF download works end-to-end
-6. Note the public URL — this is your shareable demo link
+6. Note the public URL: this is your shareable demo link
 
 **HF Spaces `README.md` header** (required for Spaces):
 ```yaml
@@ -820,7 +820,7 @@ pinned: false
 
 ---
 
-### Day 7 (Thursday Apr 24) — Integration testing + fixes
+### Day 7 (Thursday Apr 24): Integration testing + fixes
 
 1. Test the full pipeline on at least 3 different datasets (Adult Income, a synthetic dataset, one of your own)
 2. Test edge cases: very small datasets, datasets with no sensitive columns detected, missing target column
@@ -840,22 +840,22 @@ Live public deployment on Hugging Face Spaces. Working PDF report download. The 
 
 ---
 
-# Week 4 — Evaluation Suite + Documentation
+# Week 4: Evaluation Suite + Documentation
 
-**Dates:** April 25 – 30
+**Dates:** April 25 - 30
 **Goal:** Prove the system works against known biased datasets. Write comprehensive documentation. Make the project shareable as a portfolio piece or research contribution.
 
 ---
 
 ## What to build this week
 
-This week is about validating and documenting. The system runs — now prove it works correctly, know where it fails, and explain it clearly.
+This week is about validating and documenting. The system runs: now prove it works correctly, know where it fails, and explain it clearly.
 
 ---
 
 ## Day-by-Day Breakdown
 
-### Day 1 (Friday Apr 25) — Evaluation framework design
+### Day 1 (Friday Apr 25): Evaluation framework design
 
 **File:** `evaluation/run_eval.py`
 
@@ -875,11 +875,11 @@ Define what "working correctly" means for this system:
 - List of expected issues (ground truth, manually defined)
 - List of issues detected by Layer 1
 - Recall: what fraction of expected issues were caught?
-- Manual scores for Layer 2 interpretation quality (1–5 scale, scored by you)
+- Manual scores for Layer 2 interpretation quality (1-5 scale, scored by you)
 
 ---
 
-### Day 2 (Saturday Apr 26) — COMPAS evaluation
+### Day 2 (Saturday Apr 26): COMPAS evaluation
 
 **Setup:**
 - Download COMPAS dataset (available via ProPublica's GitHub)
@@ -901,7 +901,7 @@ Define what "working correctly" means for this system:
 
 ---
 
-### Day 3 (Sunday Apr 27) — Adult Income evaluation
+### Day 3 (Sunday Apr 27): Adult Income evaluation
 
 **Setup:**
 - Download from UCI Machine Learning Repository
@@ -913,15 +913,15 @@ Define what "working correctly" means for this system:
 2. Gender demographic parity gap (~19 percentage points)
 3. Racial demographic parity gap
 4. Correlation between sex and income label (Cramér's V ~0.22)
-5. Age as a proxy — correlation between age and income
+5. Age as a proxy: correlation between age and income
 
 **Document results** in the same format as COMPAS evaluation.
 
 ---
 
-### Day 4 (Monday Apr 28) — CelebA evaluation
+### Day 4 (Monday Apr 28): CelebA evaluation
 
-CelebA is larger and image-based — you won't upload the raw images, but you can use the attribute annotations CSV (which is tabular and available separately).
+CelebA is larger and image-based: you won't upload the raw images, but you can use the attribute annotations CSV (which is tabular and available separately).
 
 **Setup:**
 - Download `list_attr_celeba.txt` (attribute annotations for 200k faces)
@@ -933,11 +933,11 @@ CelebA is larger and image-based — you won't upload the raw images, but you ca
 2. Spurious correlations between gender and multiple target attributes
 3. Representation gaps
 
-**Note in documentation:** CelebA evaluation is inherently limited because the "ground truth" labels in CelebA are themselves biased human annotations — mention this as a limitation of the evaluation.
+**Note in documentation:** CelebA evaluation is inherently limited because the "ground truth" labels in CelebA are themselves biased human annotations: mention this as a limitation of the evaluation.
 
 ---
 
-### Day 5 (Tuesday Apr 29) — Limitations documentation
+### Day 5 (Tuesday Apr 29): Limitations documentation
 
 **Write a clear, honest limitations section** for the README and the report template:
 
@@ -955,7 +955,7 @@ CelebA is larger and image-based — you won't upload the raw images, but you ca
 
 ---
 
-### Day 6 (Wednesday Apr 30 — morning) — README and documentation
+### Day 6 (Wednesday Apr 30, morning): README and documentation
 
 Write a comprehensive `README.md`:
 
@@ -985,7 +985,7 @@ Include:
 
 ---
 
-### Day 7 (Wednesday Apr 30 — afternoon) — Final polish + retrospective
+### Day 7 (Wednesday Apr 30, afternoon): Final polish + retrospective
 
 1. Fix any remaining bugs found during evaluation
 2. Add the live demo link prominently to the README
@@ -1007,10 +1007,10 @@ Evaluation report with results on 3 known-biased datasets. Comprehensive README.
 
 | Week | Theme | Key deliverable |
 |---|---|---|
-| 1 (Apr 4–10) | Statistical analysis layer | POST /analyze returns JSON bias audit for any CSV |
-| 2 (Apr 11–17) | Agent interpretation pipeline | Full pipeline: CSV + task → bias audit in browser |
-| 3 (Apr 18–24) | Reports + deployment | Live HF Spaces URL + downloadable PDF report |
-| 4 (Apr 25–30) | Evaluation + documentation | Results on COMPAS/Adult/CelebA + shareable README |
+| 1 (Apr 4-10) | Statistical analysis layer | POST /analyze returns JSON bias audit for any CSV |
+| 2 (Apr 11-17) | Agent interpretation pipeline | Full pipeline: CSV + task → bias audit in browser |
+| 3 (Apr 18-24) | Reports + deployment | Live HF Spaces URL + downloadable PDF report |
+| 4 (Apr 25-30) | Evaluation + documentation | Results on COMPAS/Adult/CelebA + shareable README |
 
 ---
 
@@ -1028,8 +1028,8 @@ Evaluation report with results on 3 known-biased datasets. Comprehensive README.
 
 # One-Line Reminder
 
-**This is not just detecting bias — it explains what the bias means for a specific ML task and how to fix it.**
+**This is not just detecting bias: it explains what the bias means for a specific ML task and how to fix it.**
 
 ---
 
-*MVP plan version 1.0 — generated April 2026*
+*MVP plan version 1.0: generated April 2026*

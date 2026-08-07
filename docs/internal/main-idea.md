@@ -1,4 +1,4 @@
-Got it — I’ll keep it clean and minimal 👍
+Got it. I’ll keep it clean and minimal 👍
 
 Here’s your idea rewritten clearly, structured, and easy to revisit:
 
@@ -20,7 +20,7 @@ Identify where the data is biased, explain why it matters for the given task, an
 
 # System Structure
 
-## Layer 1 — Statistical Analysis (Python, deterministic)
+## Layer 1: Statistical Analysis (Python, deterministic)
 
 Runs automatically when a dataset is uploaded.
 
@@ -44,7 +44,7 @@ No LLM involved. Fully deterministic and auditable.
 
 ---
 
-## Layer 2 — Agentic Interpretation (LangGraph + LLM)
+## Layer 2: Agentic Interpretation (LangGraph + LLM)
 
 Takes:
 
@@ -64,7 +64,7 @@ parse → analyze → interpret → recommend → report
 
 ---
 
-## Layer 3 — Report Generation
+## Layer 3: Report Generation
 
 Produces a structured report (PDF or markdown) including:
 
@@ -139,4 +139,4 @@ This should be explicitly acknowledged:
 
 # One-Line Reminder (Most Important)
 
-**This is not just detecting bias — it explains what the bias means for a specific ML task and how to fix it.**
+**This is not just detecting bias: it explains what the bias means for a specific ML task and how to fix it.**

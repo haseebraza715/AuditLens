@@ -1,4 +1,4 @@
-# AuditLens — Next-Phase Roadmap
+# AuditLens: Next-Phase Roadmap
 
 > **Status note (2026-07):** Historical adoption roadmap. Items and test counts
 > below describe plans at the time they were written and must not be read as
@@ -20,7 +20,7 @@ Three rules that override every other decision in this document:
 
 ---
 
-## Phase 1 — Make the refactor real (this weekend, ~4–6 hours)
+## Phase 1: Make the refactor real (this weekend, ~4-6 hours)
 
 **Historical snapshot:** dependency pins in `pyproject.toml`, `AuditLensReport` Jupyter/`repr`/`to_dict()` UX, `examples/notebook_quickstart.ipynb`, and archived `docs/internal/` planning existed when this plan was written. Consult the current README/CHANGELOG before acting on any remaining item.
 
@@ -94,14 +94,14 @@ This is your most important marketing artifact. Anyone evaluating the library wi
 
 - Open it in Jupyter, run every cell top-to-bottom on a clean kernel.
 - Add markdown cells between code cells explaining what's happening.
-- Use the COMPAS dataset already in the repo (it's a well-known fairness teaching dataset — perfect for this).
-- Keep it short: 6–8 cells max. Long notebooks lose people.
+- Use the COMPAS dataset already in the repo (it's a well-known fairness teaching dataset: perfect for this).
+- Keep it short: 6-8 cells max. Long notebooks lose people.
 
 **Exit criteria:** Notebook renders cleanly on GitHub's notebook viewer. Reads like a tutorial, not a test script.
 
 ### 1.5 Repo hygiene
 
-- Delete `bias_audit_mvp_plan.html` from repo root — internal planning artifact, makes the repo look messy.
+- Delete `bias_audit_mvp_plan.html` from repo root: internal planning artifact, makes the repo look messy.
 - **Read** `AGENT.MD` first. If it's just internal notes, delete. If it has agent instructions used by Cursor/Claude/etc., move to `.cursorrules` or keep.
 - Move all internal planning docs from `docs/` into a `docs/internal/` subfolder so the public-facing docs are clearly separated.
 - Add `.auditlens_artifacts/` and `compas-scores-two-years.csv` to `.gitignore` if not already.
@@ -123,7 +123,7 @@ If `auditlens` is taken, decide on the alternative *now* (`auditlens-py`, `audit
 
 ---
 
-## Phase 2 — Credibility & distribution channels (week 1, ~3 days)
+## Phase 2: Credibility & distribution channels (week 1, ~3 days)
 
 **Why this exists:** A library with no CI badge, no CLI, and no MCP server is invisible. This phase adds the three signals that make AuditLens look like a real, adoptable tool *and* opens three distinct distribution channels (CI users, shell users, AI-assistant users).
 
@@ -189,7 +189,7 @@ auditlens audit data.csv --target income --sensitive race --stats-only \
   --fail-on high   # exits 1 if any high-severity issue found
 ```
 
-**Critical:** the `--stats-only` flag is the CI mode. Layer 2 is non-deterministic and costs money — it has no place in a CI pipeline. Document this clearly.
+**Critical:** the `--stats-only` flag is the CI mode. Layer 2 is non-deterministic and costs money: it has no place in a CI pipeline. Document this clearly.
 
 **Exit criteria:** `auditlens --help` works after `pip install -e .`. `--stats-only --fail-on high` exits 1 on the COMPAS dataset.
 
@@ -215,7 +215,7 @@ Create `src/auditlens/mcp_server.py`. Expose 3 tools:
 | `audit_csv_with_task` | Same as above + task description → runs Layer 2 |
 | `list_supported_metrics` | Returns the catalog of available checks (helps the LLM decide what to ask for) |
 
-The user experience: a data scientist in Claude Code says *"audit my training data for bias before I fit this classifier"* — Claude calls your MCP tool, gets structured findings, and surfaces them inline. Zero friction.
+The user experience: a data scientist in Claude Code says *"audit my training data for bias before I fit this classifier"*: Claude calls your MCP tool, gets structured findings, and surfaces them inline. Zero friction.
 
 Document MCP install in README:
 
@@ -261,7 +261,7 @@ git push origin v0.1.0-alpha
 
 ---
 
-## Phase 3 — Metric depth that actually matters (week 2, ~5 days)
+## Phase 3: Metric depth that actually matters (week 2, ~5 days)
 
 **Why this exists:** The current 4 Layer 1 checks are too thin to credibly ship as a fairness tool. But adding 60 metrics to match AIF360 is the wrong battle. The goal is to add the **3 metrics that get asked about most** and **1 metric nobody else has**.
 
@@ -290,7 +290,7 @@ Severity thresholds:
 
 ### 3.2 Intersectional subgroup analysis
 
-The current `subgroup_analysis.py` analyzes one sensitive attribute at a time. Real-world bias often hits intersections (Black women, older Hispanic men, etc.) — a model can pass demographic parity for "race" and "sex" individually while catastrophically failing for the intersection.
+The current `subgroup_analysis.py` analyzes one sensitive attribute at a time. Real-world bias often hits intersections (Black women, older Hispanic men, etc.): a model can pass demographic parity for "race" and "sex" individually while catastrophically failing for the intersection.
 
 Extend the existing analyzer in `src/auditlens/core/analyzers/subgroup_analysis.py`:
 
@@ -315,7 +315,7 @@ Detect when a non-sensitive feature is a near-perfect proxy for a sensitive attr
 def analyze_feature_leakage(df, sensitive_cols, threshold=0.7):
     """
     For each non-sensitive feature, compute mutual information / Cramér's V
-    against each sensitive column. Flag features that exceed `threshold` —
+    against each sensitive column. Flag features that exceed `threshold`:
     these are proxies that will leak sensitive information into the model
     even if the sensitive column itself is dropped.
     """
@@ -342,7 +342,7 @@ This catches a sneaky failure mode where evaluation metrics look great but the t
 After Phase 3, **rewrite the comparison section of the README to stop competing on metric count**:
 
 > **What AuditLens does that others don't:**
-> - Contextual interpretation: don't just report a 0.13 demographic parity gap — explain why it's harmful for *your specific task*
+> - Contextual interpretation: don't just report a 0.13 demographic parity gap: explain why it's harmful for *your specific task*
 > - Intersectional subgroups out of the box (race × sex, not just race and sex separately)
 > - Proxy/feature-leakage detection
 > - First-class CLI for CI pipelines (`--stats-only --fail-on high`)
@@ -354,7 +354,7 @@ Do **not** include a metric-count comparison table. You will lose that compariso
 
 ---
 
-## Phase 4 — `audit_model()`: the EU AI Act unlock (week 3, ~5 days)
+## Phase 4: `audit_model()`: the EU AI Act unlock (week 3, ~5 days)
 
 **Why this exists:** The EU AI Act, NYC Local Law 144, and most actual regulatory pressure focuses on **deployed models**, not raw datasets. Until AuditLens can audit a trained model's behavior on a test set, it's a dataset linter. With `audit_model()`, it becomes a compliance-adjacent tool.
 
@@ -368,15 +368,15 @@ from auditlens import audit_model
 report = audit_model(
     model,                    # any object with .predict() and optionally .predict_proba()
     X_test,                   # pd.DataFrame
-    y_test,                   # pd.Series — ground truth labels
+    y_test,                   # pd.Series: ground truth labels
     sensitive_cols=["race", "sex"],
     task_description="loan approval",   # optional, triggers Layer 2
 )
 ```
 
 Critical design choices:
-- Accept any model with `.predict()` — sklearn, XGBoost, PyTorch wrapper, custom callable
-- `sensitive_cols` are columns *of `X_test`* — not separate arrays. Keeps the API simple.
+- Accept any model with `.predict()`: sklearn, XGBoost, PyTorch wrapper, custom callable
+- `sensitive_cols` are columns *of `X_test`*: not separate arrays. Keeps the API simple.
 - Returns the same `AuditLensReport` shape as `audit()` so users only learn one mental model
 
 ### 4.2 Add prediction-based analyzers
@@ -396,13 +396,13 @@ Each has well-known thresholds in the fairness literature; reuse the same severi
 
 Layer 2 currently interprets dataset findings. When called from `audit_model()`, it now has predictions to reason about. Add a `context_type: "model"` field to the state and a model-specific prompt template:
 
-> "This audit is of a *trained model's predictions on test data*, not raw training data. Frame recommendations accordingly: focus on threshold tuning, post-processing, model retraining with different objectives — not data collection or sampling."
+> "This audit is of a *trained model's predictions on test data*, not raw training data. Frame recommendations accordingly: focus on threshold tuning, post-processing, model retraining with different objectives: not data collection or sampling."
 
 **Exit criteria:** `audit_model(sklearn_classifier, X, y, sensitive_cols=[...])` returns a unified `AuditLensReport`. Layer 2 produces model-context recommendations. Tests cover at least one sklearn classifier end-to-end.
 
 ---
 
-## Phase 5 — PyPI publish & lightweight docs (week 4, ~3 days)
+## Phase 5: PyPI publish & lightweight docs (week 4, ~3 days)
 
 **Why this exists:** "Pip-installable" is a lie until it's actually on PyPI. This phase makes the install command in the README literally true and adds the minimum docs needed for someone to learn the library without reading the source.
 
@@ -439,9 +439,9 @@ Add badges to README:
 
 Skip MkDocs for now. It's a real maintenance burden and overkill for v0.1.0. Three docs are enough:
 
-1. **`README.md`** — install, 10-line quickstart, link to notebook, link to API docs
-2. **`examples/notebook_quickstart.ipynb`** — already exists from Phase 1.4
-3. **`docs/api.md`** — every public function/class with parameters, return types, one-line example each
+1. **`README.md`**: install, 10-line quickstart, link to notebook, link to API docs
+2. **`examples/notebook_quickstart.ipynb`**: already exists from Phase 1.4
+3. **`docs/api.md`**: every public function/class with parameters, return types, one-line example each
 
 When you have real users asking docs questions, *then* invest in MkDocs. Premature documentation rots faster than premature code.
 
@@ -455,13 +455,13 @@ Pure prompt engineering, no new code. Edit the recommend prompt in `src/auditlen
 > - IEEE 7003-2024 (algorithmic bias considerations)
 > Cite the specific clause when relevant. Do not fabricate citations."
 
-This single change converts AuditLens output from "interesting bias notes" to "compliance-aligned recommendations" — a difference that matters enormously to enterprise buyers and regulated industries.
+This single change converts AuditLens output from "interesting bias notes" to "compliance-aligned recommendations": a difference that matters enormously to enterprise buyers and regulated industries.
 
 **Exit criteria:** PyPI page exists. README has install + quickstart + badges. Layer 2 output references at least one standard per audit.
 
 ---
 
-## Phase 6 — Workflow integration polish (month 2)
+## Phase 6: Workflow integration polish (month 2)
 
 **Why this exists:** By now AuditLens is functional, deployable, and discoverable. This phase adds the ergonomic touches that turn "library people install" into "library people retweet."
 
@@ -531,7 +531,7 @@ Users will ask. Showing the number proactively builds trust and lets people make
 
 ---
 
-## Distribution plan (parallel to Phase 5–6)
+## Distribution plan (parallel to Phase 5-6)
 
 Publishing to PyPI does not mean people will find the library. Active distribution moves:
 
@@ -539,8 +539,8 @@ Publishing to PyPI does not mean people will find the library. Active distributi
 |---|---|---|
 | **awesome-fairness lists** | Submit PRs to `awesome-machine-learning-fairness`, `awesome-responsible-ai`, etc. | After Phase 5 |
 | **/r/MachineLearning** | Single high-quality post titled along the lines of "I built a CLI bias audit tool that integrates with Claude Code via MCP" | After Phase 5 |
-| **HN Show HN** | One shot. Make it count. Lead with the MCP angle — that's currently novel. | After Phase 5 + 1 week of bug fixes |
-| **Fairlearn / AIF360 communities** | Engage in their issue trackers / Slack. Don't promote — contribute. AuditLens should be seen as complementary, not competitive. | Ongoing |
+| **HN Show HN** | One shot. Make it count. Lead with the MCP angle: that's currently novel. | After Phase 5 + 1 week of bug fixes |
+| **Fairlearn / AIF360 communities** | Engage in their issue trackers / Slack. Don't promote: contribute. AuditLens should be seen as complementary, not competitive. | Ongoing |
 | **ML Twitter / Bluesky** | Short demo video: COMPAS dataset → `auditlens audit` → report in 30 seconds. Embed in README too. | Phase 5 |
 | **MCP directory** | Submit to the official MCP server registry once stable. | After Phase 2.3 lands |
 
@@ -598,4 +598,4 @@ To prevent scope drift in subsequent phases, here's the explicit definition of w
 - MCP server listed in the official MCP registry
 - README is the canonical fairness library landing page for the LLM-augmented angle
 
-Anything beyond this is a v2.0 conversation. The temptation to add features before achieving the v1.0 bar is the single biggest risk to this project — guard against it deliberately.
+Anything beyond this is a v2.0 conversation. The temptation to add features before achieving the v1.0 bar is the single biggest risk to this project: guard against it deliberately.

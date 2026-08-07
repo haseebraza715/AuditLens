@@ -24,6 +24,7 @@ def analyze_missing_values_by_group(
                 continue
 
             missing_rates: dict[str, float] = {}
+            group_sizes: dict[str, int] = {}
             for group_value in group_values:
                 mask = group_series == group_value
                 group_size = int(mask.sum())
@@ -31,6 +32,7 @@ def analyze_missing_values_by_group(
                     continue
                 rate = float(df.loc[mask, feature_col].isna().mean())
                 missing_rates[group_value] = rate
+                group_sizes[group_value] = group_size
 
             if len(missing_rates) < 2:
                 continue
@@ -64,6 +66,8 @@ def analyze_missing_values_by_group(
                         "missingness_rates": missing_rates,
                         "highest_missing_group": highest_group,
                         "lowest_missing_group": lowest_group,
+                        "sample_size": int(len(df)),
+                        "group_sizes": group_sizes,
                     },
                     "justification": justification,
                 }

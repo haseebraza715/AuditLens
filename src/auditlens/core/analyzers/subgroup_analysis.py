@@ -49,6 +49,7 @@ def analyze_subgroup_label_distribution(
     for sensitive_col in sensitive_columns:
         groups = df[sensitive_col].fillna("__MISSING_GROUP__").astype(str)
         rates: dict[str, float] = {}
+        group_sizes: dict[str, int] = {}
 
         for group_value in sorted(groups.unique().tolist()):
             mask = groups == group_value
@@ -57,6 +58,7 @@ def analyze_subgroup_label_distribution(
                 continue
             rate = float((target[mask] == resolved_positive).mean())
             rates[group_value] = rate
+            group_sizes[group_value] = group_size
 
         if len(rates) < 2:
             continue
@@ -91,6 +93,8 @@ def analyze_subgroup_label_distribution(
                     "demographic_parity_gap": gap,
                     "highest_positive_rate_group": highest_group,
                     "lowest_positive_rate_group": lowest_group,
+                    "sample_size": int(len(target)),
+                    "group_sizes": group_sizes,
                 },
                 "justification": justification,
             }

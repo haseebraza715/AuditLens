@@ -113,6 +113,38 @@ def test_audit_unicode_columns_and_values() -> None:
     assert "组" in repr(report.to_dict()["layer1_report"]["dataset_info"]["sensitive_columns"])
 
 
+def test_audit_missing_target_column_raises_clear_error() -> None:
+    from auditlens import AuditLensError, audit
+
+    df = pd.DataFrame({"t": [0, 1, 0, 1], "g": ["a", "b", "a", "b"]})
+    with pytest.raises(AuditLensError, match="target_col 'nope' not found"):
+        audit(df, target_col="nope", sensitive_cols=["g"])
+
+
+def test_audit_missing_sensitive_column_raises_clear_error() -> None:
+    from auditlens import AuditLensError, audit
+
+    df = pd.DataFrame({"t": [0, 1, 0, 1], "g": ["a", "b", "a", "b"]})
+    with pytest.raises(AuditLensError, match="sensitive_cols not found"):
+        audit(df, target_col="t", sensitive_cols=["g", "missing"])
+
+
+def test_demographic_parity_tiebreak_prefers_conventional_positive() -> None:
+    from auditlens.core.analyzers.subgroup_analysis import (
+        _resolve_positive_class,
+        analyze_subgroup_label_distribution,
+    )
+
+    df = pd.DataFrame(
+        {"sex": ["M"] * 4 + ["F"] * 4, "target": [0, 1, 1, 1, 0, 0, 0, 1]}
+    )
+    assert _resolve_positive_class(df["target"]) == "1"
+    issues = analyze_subgroup_label_distribution(df, "target", ["sex"])
+    assert issues[0]["metrics"]["positive_class"] == "1"
+    assert issues[0]["metrics"]["sample_size"] == 8
+    assert issues[0]["metrics"]["group_sizes"] == {"F": 4, "M": 4}
+
+
 def test_build_markdown_includes_unicode_safely() -> None:
     from auditlens.reporting.generator import build_markdown_report
 

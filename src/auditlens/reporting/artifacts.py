@@ -6,11 +6,19 @@ import os
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 
 class ArtifactNotFoundError(FileNotFoundError):
     pass
+
+
+def _validate_artifact_id(artifact_id: str) -> None:
+    """Artifact ids are UUIDs; anything else could traverse the artifact dir."""
+    try:
+        UUID(str(artifact_id))
+    except (ValueError, AttributeError):
+        raise ArtifactNotFoundError(f"Artifact '{artifact_id}' was not found")
 
 
 def _resolve_root(artifact_dir: str | os.PathLike[str] | None) -> Path:
@@ -71,6 +79,7 @@ def save_report_artifact(
 
 
 def get_artifact_metadata(artifact_id: str, *, artifact_dir: str | os.PathLike[str] | None = None) -> dict[str, Any]:
+    _validate_artifact_id(artifact_id)
     metadata_file = _metadata_path(artifact_id, artifact_dir=artifact_dir)
     if not metadata_file.exists():
         raise ArtifactNotFoundError(f"Artifact '{artifact_id}' was not found")
@@ -87,6 +96,7 @@ def artifact_is_expired(metadata: dict[str, Any], *, now: datetime | None = None
 
 
 def delete_artifact(artifact_id: str, *, artifact_dir: str | os.PathLike[str] | None = None) -> None:
+    _validate_artifact_id(artifact_id)
     metadata_file = _metadata_path(artifact_id, artifact_dir=artifact_dir)
     try:
         metadata = json.loads(metadata_file.read_text(encoding="utf-8"))

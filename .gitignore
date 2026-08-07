@@ -8,4 +8,5 @@ __pycache__/
 .DS_Store
 .env
 .auditlens_artifacts/
+demo-output/
 compas-scores-two-years.csv

@@ -53,4 +53,5 @@ Statistics first, interpretation second. `audit()` runs Layer 1 checks against f
 
 - Layer 2 providers: set `LAYER2_PROVIDER` (openai / openrouter / groq) plus its API key env var, or pass your own `BaseLLMClient` (see `examples/custom_llm_client.py`).
 - Development: `pip install -e ".[dev]"`, then `pytest -m "not slow and not e2e"` and `ruff check src tests scripts`.
+- Real-data evidence: the deterministic Layer 1 audit of the public UCI Adult (Census Income) dataset (32,561 rows), with byte-stable JSON/Markdown artifacts and golden regression tests, is in [docs/evidence/adult-income-report.md](docs/evidence/adult-income-report.md). Its findings are effect-size screens, not significance tests or evidence of causality.
 - [Versioned quickstart output](docs/examples/quickstart-result.md) · [Roadmap](docs/next-phase-roadmap.md) · [CHANGELOG](CHANGELOG.md) · [Publishing (maintainers)](.github/workflows/) via Trusted Publishing on release.

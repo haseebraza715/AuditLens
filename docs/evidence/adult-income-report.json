@@ -1,0 +1,334 @@
+{
+  "clarifying_questions": null,
+  "final_report": null,
+  "issues": [
+    {
+      "affected_column": "income",
+      "description": "Target column 'income' has imbalance ratio of 3.153:1",
+      "issue_id": "class_imbalance_income",
+      "justification": "imbalance_ratio=3.1527 exceeds high threshold 3.0000",
+      "metrics": {
+        "class_counts": {
+          "<=50K": 24720,
+          ">50K": 7841
+        },
+        "class_percentages": {
+          "<=50K": 0.75919,
+          ">50K": 0.24081
+        },
+        "gini_impurity": 0.365641,
+        "imbalance_ratio": 3.152659,
+        "majority_class": "<=50K",
+        "majority_count": 24720,
+        "minority_class": ">50K",
+        "minority_count": 7841
+      },
+      "severity": "high",
+      "type": "class_imbalance"
+    },
+    {
+      "affected_column": "race",
+      "description": "Demographic parity gap for 'race' is 0.173 for target 'income'",
+      "issue_id": "demographic_parity_race_income",
+      "justification": "demographic_parity_gap=0.1734 exceeds high threshold 0.1500",
+      "metrics": {
+        "demographic_parity_gap": 0.173389,
+        "group_sizes": {
+          "Amer-Indian-Eskimo": 311,
+          "Asian-Pac-Islander": 1039,
+          "Black": 3124,
+          "Other": 271,
+          "White": 27816
+        },
+        "highest_positive_rate_group": "Asian-Pac-Islander",
+        "lowest_positive_rate_group": "Other",
+        "positive_class": ">50K",
+        "positive_rates": {
+          "Amer-Indian-Eskimo": 0.115756,
+          "Asian-Pac-Islander": 0.26564,
+          "Black": 0.12388,
+          "Other": 0.092251,
+          "White": 0.25586
+        },
+        "sample_size": 32561,
+        "sensitive_column": "race",
+        "target_column": "income"
+      },
+      "severity": "high",
+      "type": "demographic_parity_gap"
+    },
+    {
+      "affected_column": "sex",
+      "description": "Demographic parity gap for 'sex' is 0.196 for target 'income'",
+      "issue_id": "demographic_parity_sex_income",
+      "justification": "demographic_parity_gap=0.1963 exceeds high threshold 0.1500",
+      "metrics": {
+        "demographic_parity_gap": 0.196276,
+        "group_sizes": {
+          "Female": 10771,
+          "Male": 21790
+        },
+        "highest_positive_rate_group": "Male",
+        "lowest_positive_rate_group": "Female",
+        "positive_class": ">50K",
+        "positive_rates": {
+          "Female": 0.109461,
+          "Male": 0.305737
+        },
+        "sample_size": 32561,
+        "sensitive_column": "sex",
+        "target_column": "income"
+      },
+      "severity": "high",
+      "type": "demographic_parity_gap"
+    },
+    {
+      "affected_column": "race",
+      "description": "Correlation score between sensitive column 'race' and target 'income' is 0.101",
+      "issue_id": "correlation_race_income",
+      "justification": "cramers_v=0.1008 exceeds medium threshold 0.1000",
+      "metrics": {
+        "absolute_correlation": 0.100812,
+        "correlation_value": 0.100812,
+        "method": "cramers_v",
+        "sample_size": 32561,
+        "sensitive_column": "race",
+        "target_column": "income"
+      },
+      "severity": "medium",
+      "type": "sensitive_correlation"
+    },
+    {
+      "affected_column": "sex",
+      "description": "Correlation score between sensitive column 'sex' and target 'income' is 0.216",
+      "issue_id": "correlation_sex_income",
+      "justification": "cramers_v=0.2160 exceeds medium threshold 0.1000",
+      "metrics": {
+        "absolute_correlation": 0.21598,
+        "correlation_value": 0.21598,
+        "method": "cramers_v",
+        "sample_size": 32561,
+        "sensitive_column": "sex",
+        "target_column": "income"
+      },
+      "severity": "medium",
+      "type": "sensitive_correlation"
+    },
+    {
+      "affected_column": "native_country",
+      "description": "Missingness differs by 0.080 for 'native_country' across 'race' groups",
+      "issue_id": "missingness_gap_race_native_country",
+      "justification": "differential_missingness=0.0799 exceeds medium threshold 0.0500",
+      "metrics": {
+        "feature_column": "native_country",
+        "group_sizes": {
+          "Amer-Indian-Eskimo": 311,
+          "Asian-Pac-Islander": 1039,
+          "Black": 3124,
+          "Other": 271,
+          "White": 27816
+        },
+        "highest_missing_group": "Asian-Pac-Islander",
+        "lowest_missing_group": "Amer-Indian-Eskimo",
+        "missingness_gap": 0.079885,
+        "missingness_rates": {
+          "Amer-Indian-Eskimo": 0.0,
+          "Asian-Pac-Islander": 0.079885,
+          "Black": 0.03073,
+          "Other": 0.066421,
+          "White": 0.013877
+        },
+        "sample_size": 32561,
+        "sensitive_column": "race"
+      },
+      "severity": "medium",
+      "type": "differential_missingness"
+    }
+  ],
+  "layer1_report": {
+    "dataset_info": {
+      "columns": 15,
+      "rows": 32561,
+      "sensitive_columns": [
+        "sex",
+        "race"
+      ],
+      "target_column": "income"
+    },
+    "issues": [
+      {
+        "affected_column": "income",
+        "description": "Target column 'income' has imbalance ratio of 3.153:1",
+        "issue_id": "class_imbalance_income",
+        "justification": "imbalance_ratio=3.1527 exceeds high threshold 3.0000",
+        "metrics": {
+          "class_counts": {
+            "<=50K": 24720,
+            ">50K": 7841
+          },
+          "class_percentages": {
+            "<=50K": 0.75919,
+            ">50K": 0.24081
+          },
+          "gini_impurity": 0.365641,
+          "imbalance_ratio": 3.152659,
+          "majority_class": "<=50K",
+          "majority_count": 24720,
+          "minority_class": ">50K",
+          "minority_count": 7841
+        },
+        "severity": "high",
+        "type": "class_imbalance"
+      },
+      {
+        "affected_column": "race",
+        "description": "Demographic parity gap for 'race' is 0.173 for target 'income'",
+        "issue_id": "demographic_parity_race_income",
+        "justification": "demographic_parity_gap=0.1734 exceeds high threshold 0.1500",
+        "metrics": {
+          "demographic_parity_gap": 0.173389,
+          "group_sizes": {
+            "Amer-Indian-Eskimo": 311,
+            "Asian-Pac-Islander": 1039,
+            "Black": 3124,
+            "Other": 271,
+            "White": 27816
+          },
+          "highest_positive_rate_group": "Asian-Pac-Islander",
+          "lowest_positive_rate_group": "Other",
+          "positive_class": ">50K",
+          "positive_rates": {
+            "Amer-Indian-Eskimo": 0.115756,
+            "Asian-Pac-Islander": 0.26564,
+            "Black": 0.12388,
+            "Other": 0.092251,
+            "White": 0.25586
+          },
+          "sample_size": 32561,
+          "sensitive_column": "race",
+          "target_column": "income"
+        },
+        "severity": "high",
+        "type": "demographic_parity_gap"
+      },
+      {
+        "affected_column": "sex",
+        "description": "Demographic parity gap for 'sex' is 0.196 for target 'income'",
+        "issue_id": "demographic_parity_sex_income",
+        "justification": "demographic_parity_gap=0.1963 exceeds high threshold 0.1500",
+        "metrics": {
+          "demographic_parity_gap": 0.196276,
+          "group_sizes": {
+            "Female": 10771,
+            "Male": 21790
+          },
+          "highest_positive_rate_group": "Male",
+          "lowest_positive_rate_group": "Female",
+          "positive_class": ">50K",
+          "positive_rates": {
+            "Female": 0.109461,
+            "Male": 0.305737
+          },
+          "sample_size": 32561,
+          "sensitive_column": "sex",
+          "target_column": "income"
+        },
+        "severity": "high",
+        "type": "demographic_parity_gap"
+      },
+      {
+        "affected_column": "race",
+        "description": "Correlation score between sensitive column 'race' and target 'income' is 0.101",
+        "issue_id": "correlation_race_income",
+        "justification": "cramers_v=0.1008 exceeds medium threshold 0.1000",
+        "metrics": {
+          "absolute_correlation": 0.100812,
+          "correlation_value": 0.100812,
+          "method": "cramers_v",
+          "sample_size": 32561,
+          "sensitive_column": "race",
+          "target_column": "income"
+        },
+        "severity": "medium",
+        "type": "sensitive_correlation"
+      },
+      {
+        "affected_column": "sex",
+        "description": "Correlation score between sensitive column 'sex' and target 'income' is 0.216",
+        "issue_id": "correlation_sex_income",
+        "justification": "cramers_v=0.2160 exceeds medium threshold 0.1000",
+        "metrics": {
+          "absolute_correlation": 0.21598,
+          "correlation_value": 0.21598,
+          "method": "cramers_v",
+          "sample_size": 32561,
+          "sensitive_column": "sex",
+          "target_column": "income"
+        },
+        "severity": "medium",
+        "type": "sensitive_correlation"
+      },
+      {
+        "affected_column": "native_country",
+        "description": "Missingness differs by 0.080 for 'native_country' across 'race' groups",
+        "issue_id": "missingness_gap_race_native_country",
+        "justification": "differential_missingness=0.0799 exceeds medium threshold 0.0500",
+        "metrics": {
+          "feature_column": "native_country",
+          "group_sizes": {
+            "Amer-Indian-Eskimo": 311,
+            "Asian-Pac-Islander": 1039,
+            "Black": 3124,
+            "Other": 271,
+            "White": 27816
+          },
+          "highest_missing_group": "Asian-Pac-Islander",
+          "lowest_missing_group": "Amer-Indian-Eskimo",
+          "missingness_gap": 0.079885,
+          "missingness_rates": {
+            "Amer-Indian-Eskimo": 0.0,
+            "Asian-Pac-Islander": 0.079885,
+            "Black": 0.03073,
+            "Other": 0.066421,
+            "White": 0.013877
+          },
+          "sample_size": 32561,
+          "sensitive_column": "race"
+        },
+        "severity": "medium",
+        "type": "differential_missingness"
+      }
+    ],
+    "summary": {
+      "high_severity": 3,
+      "low_severity": 0,
+      "medium_severity": 3,
+      "total_issues": 6
+    }
+  },
+  "severity_thresholds": {
+    "cramers_v": {
+      "high": 0.3,
+      "medium": 0.1
+    },
+    "demographic_parity_gap": {
+      "high": 0.15,
+      "medium": 0.05
+    },
+    "differential_missingness": {
+      "high": 0.15,
+      "medium": 0.05
+    },
+    "imbalance_ratio": {
+      "high": 3.0,
+      "medium": 1.5
+    }
+  },
+  "status": null,
+  "summary": {
+    "high_severity": 3,
+    "low_severity": 0,
+    "medium_severity": 3,
+    "total_issues": 6
+  }
+}

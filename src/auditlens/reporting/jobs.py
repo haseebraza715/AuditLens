@@ -83,14 +83,20 @@ class ReportJobStore:
 report_job_store = ReportJobStore()
 
 
-def start_report_job(job_id: str, worker: Callable[[], dict[str, Any]]) -> None:
+def start_report_job(
+    job_id: str,
+    worker: Callable[[], dict[str, Any]],
+    store: ReportJobStore | None = None,
+) -> None:
+    job_store = store if store is not None else report_job_store
+
     def _run() -> None:
-        report_job_store.update_job(job_id, status="running")
+        job_store.update_job(job_id, status="running")
         try:
             result = worker()
-            report_job_store.update_job(job_id, status="complete", result=result, error=None)
-        except Exception as exc:  # pragma: no cover
-            report_job_store.update_job(job_id, status="failed", error=str(exc), result=None)
+            job_store.update_job(job_id, status="complete", result=result, error=None)
+        except Exception as exc:
+            job_store.update_job(job_id, status="failed", error=str(exc), result=None)
 
     thread = threading.Thread(target=_run, daemon=True)
     thread.start()

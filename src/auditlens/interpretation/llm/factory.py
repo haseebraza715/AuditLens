@@ -6,10 +6,7 @@ from auditlens.interpretation.llm.base import BaseLLMClient
 
 
 def create_provider_client() -> BaseLLMClient:
-    try:
-        settings = get_layer2_settings()
-    except Layer2ConfigurationError as exc:
-        raise Layer2ConfigurationError(str(exc)) from exc
+    settings = get_layer2_settings()
 
     if settings.provider == "openai":
         from auditlens.interpretation.llm.providers.openai import OpenAICompatibleClient

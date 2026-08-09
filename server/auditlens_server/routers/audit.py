@@ -13,7 +13,7 @@ from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from pandas.errors import EmptyDataError, ParserError
 
-from auditlens.config import get_layer2_settings
+from auditlens.config import Layer2Settings, get_layer2_settings
 from auditlens.core.audit import run_layer1_audit
 from auditlens.core.schema import (
     AnalyzeTaskReportResponse,
@@ -172,24 +172,11 @@ def _parse_optional_json(raw_json: str) -> dict[str, object]:
     return parsed
 
 
-def _run_layer2_from_form(
-    *,
-    file: UploadFile,
-    target_column: str,
-    sensitive_columns: list[str],
-    task_description: str,
-    clarification_answers: Optional[str],
-    allow_provider_fallback: bool = False,
-) -> tuple[dict[str, object], dict[str, object]]:
-    raw_bytes = _read_upload_bounded(file)
-    df = _read_csv_from_bytes(raw_bytes)
-
+def _validate_columns(df: pd.DataFrame, target_column: str, sensitive_columns: list[str]) -> list[str]:
+    """Validate column references; returns normalized sensitive columns."""
     normalized_sensitive = _normalize_sensitive_columns(sensitive_columns)
     if not normalized_sensitive:
         raise HTTPException(status_code=422, detail="sensitive_columns must not be empty")
-
-    if not task_description.strip():
-        raise HTTPException(status_code=422, detail="task_description must not be empty")
 
     if target_column not in df.columns:
         raise HTTPException(
@@ -204,10 +191,29 @@ def _run_layer2_from_form(
             detail=f"sensitive_columns not found in CSV columns: {missing_sensitive}",
         )
 
-    clarification_payload = None
-    if clarification_answers:
-        clarification_payload = _parse_optional_json(clarification_answers)
+    if target_column in normalized_sensitive:
+        raise HTTPException(
+            status_code=422,
+            detail=f"target_column '{target_column}' must not also be a sensitive column",
+        )
 
+    return normalized_sensitive
+
+
+def _validate_audit_input(
+    *,
+    df: pd.DataFrame,
+    target_column: str,
+    sensitive_columns: list[str],
+    task_description: str,
+) -> list[str]:
+    """Validate form-derived audit inputs; returns normalized sensitive columns."""
+    if not task_description.strip():
+        raise HTTPException(status_code=422, detail="task_description must not be empty")
+    return _validate_columns(df, target_column, sensitive_columns)
+
+
+def _resolve_layer2_settings(task_description: str) -> Layer2Settings:
     try:
         settings = get_layer2_settings()
         if len(task_description) > settings.max_task_description_chars:
@@ -219,9 +225,33 @@ def _run_layer2_from_form(
             )
     except Layer2ConfigurationError as exc:
         raise HTTPException(status_code=503, detail=str(exc))
+    return settings
+
+
+def _run_layer2_flow(
+    *,
+    raw_bytes: bytes,
+    target_column: str,
+    sensitive_columns: list[str],
+    task_description: str,
+    clarification_answers: Optional[str],
+    allow_provider_fallback: bool = False,
+) -> tuple[dict[str, object], dict[str, object]]:
+    df = _read_csv_from_bytes(raw_bytes)
+    normalized_sensitive = _validate_audit_input(
+        df=df,
+        target_column=target_column,
+        sensitive_columns=sensitive_columns,
+        task_description=task_description,
+    )
+
+    clarification_payload = None
+    if clarification_answers:
+        clarification_payload = _parse_optional_json(clarification_answers)
+
+    settings = _resolve_layer2_settings(task_description)
 
     layer1_report = run_layer1_audit(df, target_column, normalized_sensitive)
-
     try:
         result = run_layer2_pipeline(
             layer1_report=layer1_report,
@@ -231,17 +261,7 @@ def _run_layer2_from_form(
         )
     except Layer2ConfigurationError as exc:
         raise HTTPException(status_code=503, detail=str(exc))
-    except Layer2InvalidResponseError as exc:
-        if not allow_provider_fallback:
-            raise HTTPException(status_code=502, detail=str(exc))
-        result = _build_layer1_only_response(
-            layer1_report=layer1_report,
-            task_description=task_description.strip(),
-            failure_reason=str(exc),
-            provider=settings.provider,
-            model=settings.model,
-        )
-    except Layer2ProviderError as exc:
+    except (Layer2InvalidResponseError, Layer2ProviderError) as exc:
         if not allow_provider_fallback:
             raise HTTPException(status_code=502, detail=str(exc))
         result = _build_layer1_only_response(
@@ -253,6 +273,25 @@ def _run_layer2_from_form(
         )
 
     return result, layer1_report
+
+
+def _run_layer2_from_form(
+    *,
+    file: UploadFile,
+    target_column: str,
+    sensitive_columns: list[str],
+    task_description: str,
+    clarification_answers: Optional[str],
+    allow_provider_fallback: bool = False,
+) -> tuple[dict[str, object], dict[str, object]]:
+    return _run_layer2_flow(
+        raw_bytes=_read_upload_bounded(file),
+        target_column=target_column,
+        sensitive_columns=sensitive_columns,
+        task_description=task_description,
+        clarification_answers=clarification_answers,
+        allow_provider_fallback=allow_provider_fallback,
+    )
 
 
 def _run_layer2_from_raw_bytes(
@@ -264,76 +303,14 @@ def _run_layer2_from_raw_bytes(
     clarification_answers: Optional[str],
     allow_provider_fallback: bool = False,
 ) -> tuple[dict[str, object], dict[str, object]]:
-    df = _read_csv_from_bytes(raw_bytes)
-
-    normalized_sensitive = _normalize_sensitive_columns(sensitive_columns)
-    if not normalized_sensitive:
-        raise HTTPException(status_code=422, detail="sensitive_columns must not be empty")
-
-    if not task_description.strip():
-        raise HTTPException(status_code=422, detail="task_description must not be empty")
-
-    if target_column not in df.columns:
-        raise HTTPException(
-            status_code=422,
-            detail=f"target_column '{target_column}' not found in CSV columns",
-        )
-
-    missing_sensitive = [col for col in normalized_sensitive if col not in df.columns]
-    if missing_sensitive:
-        raise HTTPException(
-            status_code=422,
-            detail=f"sensitive_columns not found in CSV columns: {missing_sensitive}",
-        )
-
-    clarification_payload = None
-    if clarification_answers:
-        clarification_payload = _parse_optional_json(clarification_answers)
-
-    try:
-        settings = get_layer2_settings()
-        if len(task_description) > settings.max_task_description_chars:
-            raise HTTPException(
-                status_code=422,
-                detail=(
-                    f"task_description exceeds {settings.max_task_description_chars} characters"
-                ),
-            )
-    except Layer2ConfigurationError as exc:
-        raise HTTPException(status_code=503, detail=str(exc))
-
-    layer1_report = run_layer1_audit(df, target_column, normalized_sensitive)
-    try:
-        result = run_layer2_pipeline(
-            layer1_report=layer1_report,
-            task_description=task_description.strip(),
-            clarification_answers=clarification_payload,
-            request_id=str(uuid4()),
-        )
-    except Layer2ConfigurationError as exc:
-        raise HTTPException(status_code=503, detail=str(exc))
-    except Layer2InvalidResponseError as exc:
-        if not allow_provider_fallback:
-            raise HTTPException(status_code=502, detail=str(exc))
-        result = _build_layer1_only_response(
-            layer1_report=layer1_report,
-            task_description=task_description.strip(),
-            failure_reason=str(exc),
-            provider=settings.provider,
-            model=settings.model,
-        )
-    except Layer2ProviderError as exc:
-        if not allow_provider_fallback:
-            raise HTTPException(status_code=502, detail=str(exc))
-        result = _build_layer1_only_response(
-            layer1_report=layer1_report,
-            task_description=task_description.strip(),
-            failure_reason=str(exc),
-            provider=settings.provider,
-            model=settings.model,
-        )
-
-    return result, layer1_report
+    return _run_layer2_flow(
+        raw_bytes=raw_bytes,
+        target_column=target_column,
+        sensitive_columns=sensitive_columns,
+        task_description=task_description,
+        clarification_answers=clarification_answers,
+        allow_provider_fallback=allow_provider_fallback,
+    )
 
 
 def _build_report_artifact_response(
@@ -382,23 +359,7 @@ def analyze(
     sensitive_columns: Annotated[list[str], Form(...)],
 ) -> AuditReport:
     df = _read_csv_from_upload(file)
-
-    normalized_sensitive = _normalize_sensitive_columns(sensitive_columns)
-    if not normalized_sensitive:
-        raise HTTPException(status_code=422, detail="sensitive_columns must not be empty")
-
-    if target_column not in df.columns:
-        raise HTTPException(
-            status_code=422,
-            detail=f"target_column '{target_column}' not found in CSV columns",
-        )
-
-    missing_sensitive = [col for col in normalized_sensitive if col not in df.columns]
-    if missing_sensitive:
-        raise HTTPException(
-            status_code=422,
-            detail=f"sensitive_columns not found in CSV columns: {missing_sensitive}",
-        )
+    normalized_sensitive = _validate_columns(df, target_column, sensitive_columns)
 
     report = run_layer1_audit(df, target_column, normalized_sensitive)
     return AuditReport.model_validate(_layer1_for_response(report))

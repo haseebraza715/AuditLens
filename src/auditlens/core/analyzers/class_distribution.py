@@ -19,13 +19,14 @@ def analyze_class_distribution(
 ) -> list[dict[str, Any]]:
     target = _normalize_series(df[target_column])
     counts = target.value_counts(dropna=False)
-    proportions = (counts / counts.sum()).to_dict()
-
-    gini_impurity = 1.0 - sum(p * p for p in proportions.values())
     issues: list[dict[str, Any]] = []
 
     if counts.empty:
         return issues
+
+    proportions = (counts / counts.sum()).to_dict()
+
+    gini_impurity = 1.0 - sum(p * p for p in proportions.values())
 
     if len(counts) == 1:
         issues.append(

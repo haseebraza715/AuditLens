@@ -11,7 +11,7 @@ from auditlens.core.analyzers.missing_values import analyze_missing_values_by_gr
 from auditlens.core.analyzers.subgroup_analysis import (
     analyze_subgroup_label_distribution,
 )
-from auditlens.core.severity import summarize_issues
+from auditlens.core.severity import summarize_issues, validate_severity_thresholds
 from auditlens.exceptions import AuditLensError
 
 
@@ -29,7 +29,17 @@ def run_layer1_audit(
     *,
     severity_thresholds: dict[str, dict[str, float]] | None = None,
 ) -> dict[str, Any]:
+    if not isinstance(df, pd.DataFrame):
+        raise AuditLensError(
+            f"df must be a pandas DataFrame, got {type(df).__name__}"
+        )
+    if isinstance(sensitive_cols, str) or not isinstance(sensitive_cols, (list, tuple)):
+        raise AuditLensError("sensitive_cols must be a list or tuple of column name strings")
+    if not all(isinstance(c, str) for c in sensitive_cols):
+        raise AuditLensError("sensitive_cols must contain only column name strings")
+
     thresholds = severity_thresholds if severity_thresholds is not None else SEVERITY_THRESHOLDS
+    validate_severity_thresholds(thresholds)
 
     if target_col not in df.columns:
         raise AuditLensError(
@@ -40,16 +50,34 @@ def run_layer1_audit(
         raise AuditLensError(
             f"sensitive_cols not found in DataFrame columns: {missing_sensitive}"
         )
+    if target_col in sensitive_cols:
+        raise AuditLensError(
+            f"target_col '{target_col}' must not also be listed in sensitive_cols: "
+            "correlating a column with itself is meaningless"
+        )
+
+    # Duplicate sensitive columns would emit duplicate issue ids; keep the
+    # first occurrence order for determinism.
+    seen: set[str] = set()
+    deduped_sensitive: list[str] = []
+    for col in sensitive_cols:
+        if col not in seen:
+            seen.add(col)
+            deduped_sensitive.append(col)
 
     issues: list[dict[str, Any]] = []
 
     issues.extend(analyze_class_distribution(df, target_col, severity_thresholds=thresholds))
-    issues.extend(analyze_missing_values_by_group(df, sensitive_cols, severity_thresholds=thresholds))
     issues.extend(
-        analyze_sensitive_correlations(df, target_col, sensitive_cols, severity_thresholds=thresholds)
+        analyze_missing_values_by_group(df, deduped_sensitive, severity_thresholds=thresholds)
     )
     issues.extend(
-        analyze_subgroup_label_distribution(df, target_col, sensitive_cols, severity_thresholds=thresholds)
+        analyze_sensitive_correlations(df, target_col, deduped_sensitive, severity_thresholds=thresholds)
+    )
+    issues.extend(
+        analyze_subgroup_label_distribution(
+            df, target_col, deduped_sensitive, severity_thresholds=thresholds
+        )
     )
 
     sorted_issues = sort_issues(issues)
@@ -59,7 +87,7 @@ def run_layer1_audit(
             "rows": int(len(df)),
             "columns": int(df.shape[1]),
             "target_column": target_col,
-            "sensitive_columns": sensitive_cols,
+            "sensitive_columns": deduped_sensitive,
         },
         "issues": sorted_issues,
         "summary": summarize_issues(sorted_issues),

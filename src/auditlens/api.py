@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import html
+import math
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
+import numpy as np
 import pandas as pd
 
 from auditlens.core.audit import run_layer1_audit
@@ -15,6 +17,23 @@ from auditlens.reporting.generator import build_markdown_report, build_pdf_repor
 
 def _layer1_payload_for_models(layer1_report: dict[str, Any]) -> dict[str, Any]:
     return {k: v for k, v in layer1_report.items() if k != "severity_thresholds"}
+
+
+def _json_safe(value: Any) -> Any:
+    """Recursively convert non-finite floats to None so to_dict() stays JSON-safe.
+
+    Convention: infinity and NaN are not representable in strict JSON, so they
+    are emitted as null; callers can distinguish "missing/undefined" from a
+    real finite score.
+    """
+    if isinstance(value, (float, np.floating)):
+        f = float(value)
+        return None if not math.isfinite(f) else f
+    if isinstance(value, dict):
+        return {k: _json_safe(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_json_safe(v) for v in value]
+    return value
 
 
 def _markdown_layer1_only(layer1_report: dict[str, Any]) -> str:
@@ -182,7 +201,10 @@ class AuditLensReport:
         return header + table + more
 
     def to_dict(self) -> dict[str, Any]:
-        """JSON-friendly snapshot (e.g. for logging or custom serializers)."""
+        """JSON-friendly snapshot (e.g. for logging or custom serializers).
+
+        Guaranteed `json.dumps`-safe: non-finite floats are emitted as null.
+        """
         payload: dict[str, Any] = {
             "status": self.status,
             "summary": dict(self.summary),
@@ -194,7 +216,7 @@ class AuditLensReport:
         thresholds = self._layer1_report.get("severity_thresholds")
         if thresholds is not None:
             payload["severity_thresholds"] = thresholds
-        return payload
+        return _json_safe(payload)
 
     def to_markdown(self, *, generated_at_utc: datetime | None = None) -> str:
         if self._interpretation and self._interpretation.get("status") == "complete":

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import binascii
 import json
 import os
 from datetime import datetime, timedelta, timezone
@@ -57,9 +58,14 @@ def save_report_artifact(
         content_path = _content_path(artifact_id, extension, artifact_dir=artifact_dir)
         content_path.write_text(content, encoding="utf-8")
     elif artifact_format == "pdf_base64":
+        try:
+            content_bytes = base64.b64decode(content, validate=True)
+        except (binascii.Error, ValueError) as exc:
+            raise ValueError(
+                "pdf_base64 artifact content must be valid base64"
+            ) from exc
         extension = "pdf"
         media_type = "application/pdf"
-        content_bytes = base64.b64decode(content)
         content_path = _content_path(artifact_id, extension, artifact_dir=artifact_dir)
         content_path.write_bytes(content_bytes)
     else:

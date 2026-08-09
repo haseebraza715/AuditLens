@@ -223,7 +223,11 @@ def build_pdf_report(
     missingness_heatmap = build_missingness_heatmap(layer1_report)
 
     buffer = io.BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=A4, leftMargin=42, rightMargin=42, topMargin=42, bottomMargin=42)
+    # invariant=True suppresses the embedded creation timestamp so the
+    # same inputs yield byte-identical PDFs (reproducibility).
+    doc = SimpleDocTemplate(
+        buffer, pagesize=A4, leftMargin=42, rightMargin=42, topMargin=42, bottomMargin=42, invariant=True
+    )
     styles = getSampleStyleSheet()
     story = []
 
